@@ -1,0 +1,7 @@
+django
+channels
+channels_redis
+django-redis
+djangorestframework
+psycopg2-binary  # For PostgreSQL (Use sqlite3 default if testing locally)
+requests

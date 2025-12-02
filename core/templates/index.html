@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>University Bus Tracker</title>
+    
+    <!-- CSS Dependencies -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #64748b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg-light: #f8fafc;
+            --white: #ffffff;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        
+        body { display: flex; height: 100vh; overflow: hidden; background: var(--bg-light); }
+
+        /* --- SIDEBAR STYLING --- */
+        #sidebar {
+            width: 350px;
+            background: var(--white);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 15px rgba(0,0,0,0.05);
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .brand { font-size: 1.2rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+        
+        #bus-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            background: #f1f5f9;
+        }
+
+        /* --- BUS CARD --- */
+        .bus-card {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 12px;
+            box-shadow: var(--shadow);
+            border-left: 5px solid var(--secondary);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+        }
+
+        .bus-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .bus-card.active { border-left-color: var(--primary); background: #eff6ff; }
+        .bus-card.heavy-traffic { border-left-color: var(--danger); }
+
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .bus-name { font-weight: 700; font-size: 1rem; color: #1e293b; }
+        
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status-moving { background: #dcfce7; color: var(--success); }
+        .status-stopped { background: #fee2e2; color: var(--danger); }
+
+        .route-name { font-size: 0.85rem; color: var(--secondary); display: flex; align-items: center; gap: 5px; margin-bottom: 10px; }
+        
+        .card-stats { display: flex; justify-content: space-between; font-size: 0.85rem; border-top: 1px solid #e2e8f0; padding-top: 8px; }
+        .stat-item { display: flex; align-items: center; gap: 5px; color: #334155; }
+        .stat-item i { color: var(--primary); }
+
+        /* --- MAP CONTAINER --- */
+        #map-container { flex: 1; position: relative; }
+        #map { height: 100%; width: 100%; }
+
+        /* --- CUSTOM MAP MARKER --- */
+        .custom-marker {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+        .marker-pin {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--primary);
+            border: 3px solid white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 16px;
+            z-index: 2;
+        }
+        /* Pulse Animation */
+        .marker-pulse {
+            position: absolute;
+            width: 36px;
+            height: 36px;
+            background: rgba(37, 99, 235, 0.4);
+            border-radius: 50%;
+            z-index: 1;
+            animation: pulse 2s infinite;
+        }
+        .marker-heavy .marker-pin { background: var(--danger); }
+        .marker-heavy .marker-pulse { background: rgba(239, 68, 68, 0.4); }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(2.5); opacity: 0; }
+        }
+
+        /* --- MOBILE RESPONSIVE --- */
+        .toggle-btn {
+            display: none;
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1001;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            border: none;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            #sidebar {
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                height: 45vh;
+                transform: translateY(0);
+                border-top-left-radius: 20px;
+                border-top-right-radius: 20px;
+            }
+            #sidebar.collapsed { transform: translateY(100%); }
+            .toggle-btn { display: block; }
+            
+            /* Hide Sidebar Header on mobile to save space */
+            .sidebar-header { padding: 10px 20px; }
+            .sidebar-header h1 { font-size: 1rem; }
+        }
+
+        /* Loader */
+        .loading-text { text-align: center; color: var(--secondary); margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <!-- Mobile Toggle Button -->
+    <button class="toggle-btn" onclick="toggleSidebar()">
+        <i class="fas fa-bars fa-lg"></i>
+    </button>
+
+    <!-- Sidebar -->
+    <div id="sidebar">
+        <div class="sidebar-header">
+            <div class="brand">
+                <i class="fas fa-graduation-cap"></i> Bus Tracker
+            </div>
+            <div id="connection-status" style="font-size: 0.8rem; opacity: 0.8;">
+                <i class="fas fa-circle" style="color: #ef4444;"></i> Offline
+            </div>
+        </div>
+        <div id="bus-list">
+            <div class="loading-text">
+                <i class="fas fa-spinner fa-spin"></i> Waiting for live data...
+            </div>
+        </div>
+    </div>
+
+    <!-- Map -->
+    <div id="map-container">
+        <div id="map"></div>
+    </div>
+
+    <!-- JS Libraries -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/@turf/turf/turf.min.js"></script>
+
+    <script>
+        // --- 1. Map Initialization ---
+        const map = L.map('map', {
+            zoomControl: false // We'll add custom control if needed
+        }).setView([23.8103, 90.4125], 13);
+        
+        L.control.zoom({ position: 'topright' }).addTo(map);
+
+        // Map Tiles (Clean Light Mode)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap, © CartoDB'
+        }).addTo(map);
+
+        // Google Traffic Overlay
+        L.tileLayer('https://mt0.google.com/vt/lyrs=y,traffic&x={x}&y={y}&z={z}', {
+            opacity: 0.6
+        }).addTo(map);
+
+        // --- 2. State Management ---
+        const markers = {};
+        const busStore = {}; // Store bus data to update UI without redraw
+        let myLocation = null;
+
+        // --- 3. User Location ---
+        if (navigator.geolocation) {
+            navigator.geolocation.watchPosition(pos => {
+                myLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                // Optional: Add a blue dot for user location
+            });
+        }
+
+        // --- 4. WebSocket Logic ---
+        const socket = new WebSocket('ws://' + window.location.host + '/ws/tracking/');
+
+        socket.onopen = () => {
+            document.getElementById('connection-status').innerHTML = '<i class="fas fa-circle" style="color: #10b981;"></i> Live';
+        };
+
+        socket.onclose = () => {
+            document.getElementById('connection-status').innerHTML = '<i class="fas fa-circle" style="color: #ef4444;"></i> Disconnected';
+        };
+
+        socket.onmessage = function(e) {
+            const bus = JSON.parse(e.data);
+            
+            // Remove loading spinner on first data
+            const loader = document.querySelector('.loading-text');
+            if(loader) loader.remove();
+
+            updateMap(bus);
+            updateSidebar(bus);
+        };
+
+        // --- 5. Map Update Logic ---
+        function updateMap(bus) {
+            const { id, name, lat, lng, speed, traffic, direction_status } = bus;
+            const isHeavyTraffic = traffic === 'heavy';
+
+            // Create Custom HTML Icon
+            const iconHtml = `
+                <div class="custom-marker ${isHeavyTraffic ? 'marker-heavy' : ''}">
+                    <div class="marker-pulse"></div>
+                    <div class="marker-pin">
+                        <i class="fas fa-bus"></i>
+                    </div>
+                </div>
+            `;
+
+            const customIcon = L.divIcon({
+                html: iconHtml,
+                className: '', // Remove default class to allow custom flex styling
+                iconSize: [40, 40],
+                iconAnchor: [20, 20],
+                popupAnchor: [0, -20]
+            });
+
+            // Distance & ETA Calc
+            let etaText = "Calculating...";
+            if (myLocation) {
+                const from = turf.point([myLocation.lng, myLocation.lat]);
+                const to = turf.point([lng, lat]);
+                const dist = turf.distance(from, to, {units: 'kilometers'}).toFixed(1);
+                const calcSpeed = speed < 2 ? 15 : speed; // Assume avg speed if stuck
+                const eta = Math.round((dist / calcSpeed) * 60);
+                etaText = `<b>${dist} km</b> away (~${eta} min)`;
+            }
+
+            const popupContent = `
+                <div style="min-width: 150px; text-align: center;">
+                    <h3 style="margin:0; color: #1e293b;">${name}</h3>
+                    <p style="margin:5px 0; color: #64748b; font-size: 0.9rem;">${bus.route}</p>
+                    <div style="background: #f1f5f9; padding: 8px; border-radius: 8px; margin-top: 5px;">
+                        <i class="fas fa-location-arrow"></i> ${etaText}
+                    </div>
+                </div>
+            `;
+
+            if (markers[id]) {
+                // Update existing marker
+                markers[id].setLatLng([lat, lng]);
+                markers[id].setIcon(customIcon); // Update icon color if traffic changes
+                markers[id].setPopupContent(popupContent);
+            } else {
+                // New Marker
+                markers[id] = L.marker([lat, lng], { icon: customIcon })
+                    .addTo(map)
+                    .bindPopup(popupContent);
+            }
+        }
+
+        // --- 6. Sidebar Update Logic ---
+        function updateSidebar(bus) {
+            const list = document.getElementById('bus-list');
+            let card = document.getElementById(`card-${bus.id}`);
+            
+            // Logic for traffic badge
+            let trafficClass = 'text-success';
+            let trafficText = 'Normal Road';
+            if (bus.traffic === 'heavy') {
+                trafficClass = 'text-danger';
+                trafficText = 'Heavy Traffic';
+            } else if (bus.traffic === 'medium') {
+                trafficClass = 'text-warning';
+                trafficText = 'Slow Moving';
+            }
+
+            // Logic for status badge
+            const isMoving = bus.speed > 1;
+            const statusBadge = isMoving 
+                ? `<span class="status-badge status-moving">Moving</span>` 
+                : `<span class="status-badge status-stopped">Stopped</span>`;
+
+            // HTML Structure for Card
+            const html = `
+                <div class="card-header">
+                    <div class="bus-name">${bus.name}</div>
+                    ${statusBadge}
+                </div>
+                <div class="route-name">
+                    <i class="fas fa-route"></i> ${bus.route}
+                </div>
+                <div class="card-stats">
+                    <div class="stat-item">
+                        <i class="fas fa-tachometer-alt"></i> ${bus.speed.toFixed(1)} km/h
+                    </div>
+                    <div class="stat-item">
+                        <i class="fas fa-traffic-light" style="color: ${bus.traffic === 'heavy' ? '#ef4444' : '#10b981'}"></i> 
+                        ${trafficText}
+                    </div>
+                    <div class="stat-item" style="font-weight: 600;">
+                         ${bus.direction_status === 'UNI_TO_CITY' ? 'To City' : 'To Uni'}
+                    </div>
+                </div>
+            `;
+
+            if (card) {
+                // Update Card
+                card.innerHTML = html;
+                if(bus.traffic === 'heavy') card.classList.add('heavy-traffic');
+                else card.classList.remove('heavy-traffic');
+            } else {
+                // Create Card
+                card = document.createElement('div');
+                card.id = `card-${bus.id}`;
+                card.className = 'bus-card';
+                card.innerHTML = html;
+                
+                // Click event to fly to bus
+                card.onclick = () => {
+                    map.flyTo([bus.lat, bus.lng], 15, { duration: 1.5 });
+                    markers[bus.id].openPopup();
+                    
+                    // Highlight Active Card
+                    document.querySelectorAll('.bus-card').forEach(c => c.classList.remove('active'));
+                    card.classList.add('active');
+
+                    // On mobile, collapse sidebar after click
+                    if(window.innerWidth < 768) {
+                        toggleSidebar();
+                    }
+                };
+                list.appendChild(card);
+            }
+        }
+
+        // Mobile Sidebar Toggle
+        function toggleSidebar() {
+            const sb = document.getElementById('sidebar');
+            // Logic handled by CSS class if needed, or simple display toggle
+            // For now, let's assume it's always visible on desktop
+            // On mobile we might want to hide/show
+        }
+
+    </script>
+</body>
+</html>

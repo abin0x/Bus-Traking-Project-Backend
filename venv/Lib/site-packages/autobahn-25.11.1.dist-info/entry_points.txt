@@ -1,0 +1,2 @@
+[console_scripts]
+wamp = autobahn.__main__:_main
