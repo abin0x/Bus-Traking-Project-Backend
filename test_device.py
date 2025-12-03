@@ -42,7 +42,7 @@ while True:
     payload = {
         "bus_id": "BUS-01",        # আপডেট: device_id এর বদলে bus_id
         "gps_raw": gps_raw_string, # আপডেট: রিয়েল NMEA স্ট্রিং
-        "direction": "UNI_TO_CITY",
+        "direction": "CITY_TO_UNI",  # স্থির ডিরেকশন
         "type": "location_update"
     }
 
@@ -55,7 +55,7 @@ while True:
         duration = round((end_time - start_time) * 1000, 2)
 
         if response.status_code == 200:
-            print(f"✅ Sent: {speed_kmh}km/h | Server: 200 OK ({duration}ms)")
+            print(f"✅ Sent: {speed_kmh}km/h {lat_nmea} and {lng_nmea} | Server: 200 OK ({duration}ms)")
         else:
             print(f"⚠️ Server Error: {response.status_code} | Msg: {response.text}")
 

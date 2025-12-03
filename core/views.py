@@ -6,34 +6,66 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core.cache import cache
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
-from .models import Bus, BusLocation
-from .utils import parse_sim7600_gps
+from .models import Bus, BusLocation, BusStop
+from .utils import parse_sim7600_gps, calculate_distance
+
+# ==========================================
+# HELPER: GET TRIP INFO (START & END)
+# ==========================================
+def get_trip_info(bus_obj, direction_status):
+    origin = "Unknown"
+    destination = "Unknown"
+    if bus_obj.route:
+        stops = bus_obj.route.stops.all().order_by('order')
+        if stops.exists():
+            first = stops.first().name
+            last = stops.last().name
+            if direction_status == "UNI_TO_CITY":
+                return first, last
+            elif direction_status == "CITY_TO_UNI":
+                return last, first
+            else:
+                # Default based on last memory
+                if bus_obj.last_direction == "CITY_TO_UNI":
+                    return last, first
+                return first, last
+    return origin, destination
+
+# ==========================================
+
 
 @method_decorator(csrf_exempt, name='dispatch')
 class LocationUpdateView(View):
-    """
-    API Endpoint for Bus Tracking System.
-    """
 
     def get(self, request):
-        """
-        [FRONTEND API]
-        ম্যাপ লোড হওয়ার সময় সব অ্যাক্টিভ বাসের ডেটা রিটার্ন করে।
-        """
+        # GET Method - Send data to frontend
         active_buses = Bus.objects.filter(is_active=True).select_related('route')
         bus_list = []
-
+        
         for bus in active_buses:
-            # Redis থেকে ডেটা চেক
             redis_key = f"bus_data_{bus.device_id}"
             cached_data = cache.get(redis_key)
+            
+            # Get fresh data from DB
+            current_dir = bus.last_direction
+            origin, dest = get_trip_info(bus, current_dir)
 
             if cached_data:
+                # Update cached data with latest DB values
+                cached_data['last_order'] = bus.last_stop_order
+                cached_data['origin'] = origin
+                cached_data['destination'] = dest
+                cached_data['direction_status'] = current_dir
+                
+                # Ensure at_stop exists in cached data
+                if 'at_stop' not in cached_data:
+                    cached_data['at_stop'] = False
+                if 'current_stop' not in cached_data:
+                    cached_data['current_stop'] = None
+                    
                 bus_list.append(cached_data)
             else:
-                # Redis-এ না থাকলে DB থেকে লাস্ট ডেটা
                 last_loc = BusLocation.objects.filter(bus=bus).order_by('-timestamp').first()
-                
                 if last_loc:
                     bus_list.append({
                         'id': bus.device_id,
@@ -44,101 +76,244 @@ class LocationUpdateView(View):
                         'speed': last_loc.speed,
                         'status': 'offline',
                         'traffic': 'normal',
-                        'direction_status': last_loc.direction,
-                        'last_update': str(last_loc.timestamp)
+                        'direction_status': current_dir,
+                        'last_order': bus.last_stop_order,
+                        'origin': origin,
+                        'destination': dest,
+                        'current_stop': None,
+                        'at_stop': False
                     })
-
+        
         return JsonResponse({'status': 'success', 'buses': bus_list}, status=200)
 
     def post(self, request):
-        """
-        [IOT DEVICE API]
-        ESP32 (SIM7600) থেকে ডেটা রিসিভ করার লজিক।
-        """
+        # POST Method - Receive data from IoT device
         try:
-            body_unicode = request.body.decode('utf-8')
-            if not body_unicode:
-                return JsonResponse({'status': 'error', 'message': 'Empty Body'}, status=400)
-            
-            data = json.loads(body_unicode)
+            body = request.body.decode('utf-8')
+            if not body:
+                return JsonResponse({'status': 'error'}, status=400)
+                
+            data = json.loads(body)
 
-            # ১. আপনার ESP32 কোড অনুযায়ী ফিল্ডগুলো নেওয়া
-            # ESP32 Code sends: "bus_id", "gps_raw", "direction", "type"
-            incoming_bus_id = data.get('bus_id')    # "BUS-01"
-            raw_gps = data.get('gps_raw', '')       # "2352.1234,N,..."
-            direction_status = data.get('direction', 'STOPPED') 
+            bus_id = data.get('bus_id')
+            raw_gps = data.get('gps_raw', '')
+            direction = data.get('direction', 'STOPPED')
 
-            # ২. ডিভাইস ম্যাপিং (সবচেয়ে গুরুত্বপূর্ণ)
-            # ডাটাবেসে চেক করছি "BUS-01" নামে কোনো ডিভাইস আছে কিনা
             try:
-                bus_obj = Bus.objects.select_related('route').get(device_id=incoming_bus_id)
+                bus = Bus.objects.select_related('route').get(device_id=bus_id)
             except Bus.DoesNotExist:
-                print(f"⚠️ Access Denied: Unknown Device ID '{incoming_bus_id}'")
-                # 403 এর বদলে 404 দিচ্ছি যাতে লগে ক্লিয়ার থাকে
-                return JsonResponse({'status': 'error', 'message': 'Device not registered'}, status=404)
+                return JsonResponse({'status': 'error', 'msg': 'Device not found'}, status=404)
 
-            # NOTE: API Key চেক রিমুভ করা হয়েছে কারণ আপনার বর্তমান ESP32 কোডে API Key পাঠানো হচ্ছে না।
+            # ==========================================
+            # DIRECTION CHANGE LOGIC
+            # ==========================================
+            if direction != 'STOPPED' and bus.last_direction != direction:
+                print(f"🔄 Direction Change: {bus.last_direction} -> {direction}")
+                
+                bus.last_direction = direction
+                
+                # Reset stop order based on new direction
+                if direction == "UNI_TO_CITY":
+                    bus.last_stop_order = 0  # Start from first stop
+                elif direction == "CITY_TO_UNI":
+                    bus.last_stop_order = 999  # Start from last stop
+                
+                bus.save()  # Save immediately to DB
 
-            # ৩. জিপিএস পার্সিং (SIM7600 লজিক)
-            parsed_data = parse_sim7600_gps(raw_gps)
+            # GPS Parse
+            gps_data = parse_sim7600_gps(raw_gps)
+            if not gps_data:
+                return JsonResponse({'status': 'skipped'}, status=200)
             
-            if not parsed_data:
-                # জিপিএস ফিক্স না হলে "skipped" রিটার্ন করছি
-                # print(f"⏳ GPS Searching for {incoming_bus_id}...") 
-                return JsonResponse({'status': 'skipped', 'message': 'Waiting for GPS fix'}, status=200)
-
-            lat = parsed_data['latitude']
-            lng = parsed_data['longitude']
-            speed = parsed_data['speed']
-
-            # ৪. ট্রাফিক স্ট্যাটাস লজিক
-            traffic_status = 'normal'
+            lat, lng, speed = gps_data['latitude'], gps_data['longitude'], gps_data['speed']
+            
+            # Traffic calculation
+            traffic = 'normal'
             if speed < 5:
-                traffic_status = 'heavy'   # জ্যাম
+                traffic = 'heavy'
             elif speed < 25:
-                traffic_status = 'medium'  # স্লো
+                traffic = 'medium'
 
-            # ৫. ফ্রন্টএন্ড প্যাকেট তৈরি (Name Mapping সহ)
-            processed_data = {
-                'id': bus_obj.device_id,
-                'name': bus_obj.name,          # DB থেকে সুন্দর নাম (Padma Express)
-                'route': bus_obj.route.name if bus_obj.route else "No Route",
+            # ==========================================
+            # 🛑 CORRECT STOPPAGE LOGIC (Fixed Version)
+            # ==========================================
+            current_stop_name = None
+            is_at_stop = False
+            detected_order = bus.last_stop_order  # Default to current order
+
+            if bus.route and direction != "STOPPED":
+                # Get all stops for this route
+                stops = BusStop.objects.filter(route=bus.route).order_by('order')
+                
+                for stop in stops:
+                    dist = calculate_distance(lat, lng, stop.latitude, stop.longitude)
+                    
+                    # Check if within 50 meters of stop
+                    if dist <= 50:
+                        current_stop_name = stop.name
+                        is_at_stop = True
+                        detected_order = stop.order
+                        
+                        print(f"📍 Near Stop: {stop.name} (Order: {stop.order}, Dist: {dist:.1f}m)")
+                        
+                        # Check if bus has progressed to this stop
+                        should_update = False
+                        
+                        if direction == "UNI_TO_CITY":
+                            # Forward direction: stop.order should be greater than last_stop_order
+                            if stop.order > bus.last_stop_order:
+                                should_update = True
+                                print(f"   ✅ Progress: {bus.last_stop_order} -> {stop.order} (Forward)")
+                                
+                        elif direction == "CITY_TO_UNI":
+                            # Reverse direction: stop.order should be less than last_stop_order
+                            if stop.order < bus.last_stop_order:
+                                should_update = True
+                                print(f"   ✅ Progress: {bus.last_stop_order} -> {stop.order} (Reverse)")
+                        
+                        # If bus is at the same stop (stopped at station), update to confirm
+                        elif stop.order == bus.last_stop_order:
+                            should_update = True
+                            print(f"   🔄 At same stop: {stop.order} (Confirming)")
+                        
+                        # Update if needed
+                        if should_update:
+                            bus.last_stop_order = stop.order
+                            bus.save()
+                            print(f"   📝 Updated last_stop_order to: {stop.order}")
+                        
+                        break  # Found nearest stop, exit loop
+            
+            # If not at any stop, check if we're moving away from last stop
+            elif bus.route and speed > 10:
+                # If moving fast and not at a stop, we're between stops
+                is_at_stop = False
+                current_stop_name = None
+                print(f"🚌 Moving between stops at {speed} km/h")
+
+            # ==========================================
+
+            # Get origin and destination info
+            origin, dest = get_trip_info(bus, direction)
+
+            # Prepare payload for WebSocket and cache
+            payload = {
+                'id': bus.device_id,
+                'name': bus.name,
+                'route': bus.route.name if bus.route else "No Route",
                 'lat': lat,
                 'lng': lng,
                 'speed': speed,
-                'traffic': traffic_status,
-                'direction_status': direction_status,
-                'status': 'moving' if speed > 1 else 'stopped'
+                'traffic': traffic,
+                'direction_status': direction,
+                'status': 'moving' if speed > 1 else 'stopped',
+                'current_stop': current_stop_name,
+                'at_stop': is_at_stop,
+                'last_order': bus.last_stop_order,  # Always use bus.last_stop_order (DB value)
+                'origin': origin,
+                'destination': dest
             }
 
-            # ৬. Redis Cache আপডেট (৫ মিনিটের জন্য)
-            redis_key = f"bus_data_{incoming_bus_id}"
-            cache.set(redis_key, processed_data, timeout=300)
+            # Cache the payload
+            cache.set(f"bus_data_{bus_id}", payload, timeout=300)
 
-            # ৭. WebSocket Broadcast (রিয়েল-টাইম)
+            # Send update via WebSocket
             channel_layer = get_channel_layer()
             async_to_sync(channel_layer.group_send)(
                 "tracking_group",
-                {
-                    "type": "send_update",
-                    "message": processed_data
-                }
+                {"type": "send_update", "message": payload}
             )
 
-            # ৮. ডাটাবেসে হিস্ট্রি সেভ
+            # Save to location history
             BusLocation.objects.create(
-                bus=bus_obj,
+                bus=bus,
                 latitude=lat,
                 longitude=lng,
                 speed=speed,
-                direction=direction_status
+                direction=direction
             )
 
-            print(f"✅ Update: {bus_obj.name} | Speed: {speed} km/h | Dir: {direction_status}")
-            return JsonResponse({'status': 'success'}, status=200)
+            # Return success response
+            return JsonResponse({
+                'status': 'success',
+                'at_stop': is_at_stop,
+                'stop_name': current_stop_name,
+                'last_order': bus.last_stop_order
+            }, status=200)
 
         except json.JSONDecodeError:
-            return JsonResponse({'status': 'error', 'message': 'Invalid JSON format'}, status=400)
+            return JsonResponse({'status': 'error', 'msg': 'Invalid JSON'}, status=400)
         except Exception as e:
-            print(f"❌ Server Error: {str(e)}")
-            return JsonResponse({'status': 'error', 'message': 'Internal Server Error'}, status=500)
+            print(f"❌ Error in LocationUpdateView: {e}")
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({'status': 'error', 'msg': str(e)}, status=500)
+
+
+# ==========================================
+# GET STOPS API
+# ==========================================
+def get_stops(request):
+    stops = BusStop.objects.select_related('route').all().order_by('route', 'order')
+    data = []
+    for stop in stops:
+        data.append({
+            "name": stop.name,
+            "lat": stop.latitude,
+            "lng": stop.longitude,
+            "order": stop.order,
+            "route": stop.route.name
+        })
+    return JsonResponse({'stops': data}, safe=False)
+
+
+# ==========================================
+# GET SINGLE BUS STATUS (Optional - for debugging)
+# ==========================================
+def get_bus_status(request, bus_id):
+    try:
+        bus = Bus.objects.get(device_id=bus_id)
+        redis_key = f"bus_data_{bus_id}"
+        cached_data = cache.get(redis_key)
+        
+        if cached_data:
+            return JsonResponse({'status': 'success', 'bus': cached_data})
+        else:
+            return JsonResponse({
+                'status': 'success',
+                'bus': {
+                    'id': bus.device_id,
+                    'name': bus.name,
+                    'last_direction': bus.last_direction,
+                    'last_stop_order': bus.last_stop_order,
+                    'route': bus.route.name if bus.route else None
+                }
+            })
+    except Bus.DoesNotExist:
+        return JsonResponse({'status': 'error', 'msg': 'Bus not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'msg': str(e)}, status=500)
+
+
+# ==========================================
+# RESET BUS STATUS (Optional - for testing)
+# ==========================================
+@csrf_exempt
+def reset_bus(request, bus_id):
+    if request.method == 'POST':
+        try:
+            bus = Bus.objects.get(device_id=bus_id)
+            bus.last_direction = "UNI_TO_CITY"
+            bus.last_stop_order = 0
+            bus.save()
+            
+            # Clear cache
+            cache.delete(f"bus_data_{bus_id}")
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': f'Bus {bus_id} reset to initial state'
+            })
+        except Bus.DoesNotExist:
+            return JsonResponse({'status': 'error', 'msg': 'Bus not found'}, status=404)
+    return JsonResponse({'status': 'error', 'msg': 'Invalid method'}, status=400)

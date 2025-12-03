@@ -14,6 +14,10 @@ class Bus(models.Model):
     route = models.ForeignKey(Route, on_delete=models.SET_NULL, null=True, blank=True)
     api_key = models.CharField(max_length=100, default="secret_key") # Security
     is_active = models.BooleanField(default=True)
+    last_stop_order = models.IntegerField(default=0) # শেষ কোন সিরিয়াল স্টপ পার করেছে
+    last_direction = models.CharField(max_length=50, default="STOPPED")
+    TRIP_STATUS_CHOICES = [('IDLE', 'Idle'), ('READY', 'Ready'), ('ON_TRIP', 'On Trip')]
+    trip_status = models.CharField(max_length=20, choices=TRIP_STATUS_CHOICES, default='IDLE')
 
     def __str__(self):
         return f"{self.name} ({self.device_id})"

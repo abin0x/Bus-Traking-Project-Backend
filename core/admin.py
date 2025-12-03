@@ -8,7 +8,7 @@ admin.site.index_title = "Welcome to Fleet Management"
 
 @admin.register(Route)
 class RouteAdmin(admin.ModelAdmin):
-    list_display = ('name', 'color_preview', 'stop_count', 'description')
+    list_display = ('name', 'color_preview', 'stop_count')
     search_fields = ('name',)
 
     def color_preview(self, obj):
@@ -16,71 +16,64 @@ class RouteAdmin(admin.ModelAdmin):
             '<span style="background-color: {}; width: 30px; height: 15px; display: inline-block; border: 1px solid #ccc;"></span> <span style="color: #666;">{}</span>',
             obj.color, obj.color
         )
-    color_preview.short_description = 'Route Color'
-
+    
     def stop_count(self, obj):
-        # FIX: models.py তে related_name='stops' থাকায় এখানে 'stops' ব্যবহার করতে হবে
-        return obj.stops.count() 
-    stop_count.short_description = 'Total Stops'
-
+        return obj.stops.count()
 
 @admin.register(BusStop)
 class BusStopAdmin(admin.ModelAdmin):
-    list_display = ('name', 'route', 'order', 'lat_lng_display', 'open_map')
+    list_display = ('name', 'route', 'order', 'lat_lng', 'open_map')
     list_filter = ('route',)
-    search_fields = ('name',)
     ordering = ('route', 'order')
     list_editable = ('order',)
 
-    def lat_lng_display(self, obj):
+    def lat_lng(self, obj):
         return f"{obj.latitude:.4f}, {obj.longitude:.4f}"
-    lat_lng_display.short_description = "Coords"
 
     def open_map(self, obj):
         url = f"https://www.google.com/maps/search/?api=1&query={obj.latitude},{obj.longitude}"
-        return format_html('<a href="{}" target="_blank" style="background: #4CAF50; color: white; padding: 3px 8px; border-radius: 4px; text-decoration: none;">View Map</a>', url)
-    open_map.short_description = "Map Check"
-
+        return format_html('<a href="{}" target="_blank" style="color:blue;">Map</a>', url)
 
 @admin.register(Bus)
 class BusAdmin(admin.ModelAdmin):
-    list_display = ('name', 'device_id', 'route', 'is_active', 'status_badge')
-    list_filter = ('route', 'is_active')
+    # 👇 এখানে পরিবর্তন করা হয়েছে: Debugging Fields যোগ করা হয়েছে
+    list_display = ('name', 'device_id', 'route', 'is_active', 'current_status', 'last_stop_info')
+    list_filter = ('route', 'is_active', 'last_direction')
     search_fields = ('name', 'device_id')
-    list_editable = ('route', 'is_active')
     
+    # অ্যাডমিন থেকে যেন ভুল করে কেউ অটোমেটেড ফিল্ড এডিট না করে, তাই Readonly
+    readonly_fields = ('last_stop_order', 'last_direction')
+
     fieldsets = (
-        ('Display Info', {
+        ('Bus Info', {
             'fields': ('name', 'route', 'is_active')
         }),
         ('Hardware Config', {
             'fields': ('device_id', 'api_key'),
-            'description': 'These fields link to the physical ESP32 device.'
+        }),
+        ('Live Tracking Data (Auto Updated)', {
+            'fields': ('last_direction', 'last_stop_order'),
         }),
     )
 
-    def status_badge(self, obj):
-        if obj.is_active:
-            return format_html('<span style="color: green; font-weight: bold;">✔ Active</span>')
-        return format_html('<span style="color: red; font-weight: bold;">✖ Inactive</span>')
-    status_badge.short_description = "Status"
+    def current_status(self, obj):
+        color = "green" if obj.is_active else "red"
+        return format_html('<span style="color: {};">● {}</span>', color, "Active" if obj.is_active else "Inactive")
 
+    # 👇 বাসের বর্তমান মেমোরি দেখার জন্য কাস্টম কলাম
+    def last_stop_info(self, obj):
+        return format_html(
+            'Dir: <b>{}</b> | Order: <b>{}</b>',
+            obj.last_direction,
+            obj.last_stop_order
+        )
+    last_stop_info.short_description = "Live Memory"
 
 @admin.register(BusLocation)
 class BusLocationAdmin(admin.ModelAdmin):
-    list_display = ('bus', 'timestamp', 'speed', 'direction', 'open_map_link')
+    list_display = ('bus', 'timestamp', 'speed', 'direction')
     list_filter = ('bus', 'timestamp')
     date_hierarchy = 'timestamp'
-    list_per_page = 50
-
-    def has_add_permission(self, request):
-        return False
-    def has_change_permission(self, request, obj=None):
-        return False
-
-    def open_map_link(self, obj):
-        if obj.latitude and obj.longitude:
-            url = f"https://www.google.com/maps/search/?api=1&query={obj.latitude},{obj.longitude}"
-            return format_html('<a href="{}" target="_blank" style="color: blue;">Open in Maps</a>', url)
-        return "-"
-    open_map_link.short_description = "Location Check"
+    
+    def has_add_permission(self, request): return False
+    def has_change_permission(self, request, obj=None): return False
