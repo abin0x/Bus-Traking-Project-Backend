@@ -12,7 +12,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
-        /* Styles */
+        /* --- VARIABLES --- */
         :root { --primary: #0f172a; --accent: #3b82f6; --surface: #ffffff; --border: #e2e8f0; --text-main: #1e293b; --text-sub: #64748b; }
         body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; overflow: hidden; }
         #map-container { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 0; }
@@ -28,7 +28,7 @@
         .bus-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
         .bus-card.active { border-color: var(--accent); background: #eff6ff; border-left: 4px solid var(--accent); }
         
-        /* GHOST MODE STYLES */
+        /* GHOST MODE STYLES (New Logic) */
         .bus-card.offline { opacity: 0.6; background: #f8fafc; border-left: 4px solid #94a3b8; filter: grayscale(100%); }
         .bus-card.offline .badge { background: #e2e8f0 !important; color: #64748b !important; }
         
@@ -51,7 +51,7 @@
 
         /* Markers */
         .pro-marker { background: var(--primary); border: 2px solid white; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: flex; justify-content: center; align-items: center; color: white; transition: background 0.3s, filter 0.3s; }
-        .pro-marker.offline-marker { background: #64748b !important; border-color: #cbd5e1; filter: grayscale(100%); }
+        .pro-marker.offline-marker { background: #94a3b8 !important; border-color: #cbd5e1; filter: grayscale(100%); }
         .marker-arrow { width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 8px solid white; position: absolute; top: -12px; }
 
         @media (max-width: 768px) {
@@ -85,7 +85,7 @@
         </div>
     </div>
 
-    <!-- Right Panel (Simplified for code brevity, logic remains same) -->
+    <!-- Right Panel -->
     <div class="details-panel" id="details-panel">
         <div class="details-hero">
             <button class="close-btn" onclick="closeDetails()"><i class="fas fa-times"></i></button>
@@ -104,7 +104,9 @@
         </div>
         <div class="timeline-container">
             <div class="text-xs font-bold uppercase text-gray-400 mb-4 border-b pb-2">Live Route</div>
-            <div class="text-center text-gray-400 text-sm py-4">Timeline feature active</div>
+            <div class="route-timeline" id="timeline-root">
+                <div class="text-center text-gray-400 text-sm py-4">Select a bus to view live route</div>
+            </div>
         </div>
     </div>
 
@@ -119,7 +121,22 @@
         // --- STATE ---
         const markers = {};
         const busesData = {};
+        let globalStops = [];
         let selectedBusId = null;
+
+        // --- FETCH STOPS ---
+        fetch('/api/stops/')
+            .then(res => res.json())
+            .then(data => {
+                if(data.stops) {
+                    globalStops = data.stops;
+                    data.stops.forEach(stop => {
+                        L.circleMarker([stop.lat, stop.lng], {
+                            radius: 3, color: 'transparent', fillColor: '#94a3b8', fillOpacity: 0.5
+                        }).addTo(map);
+                    });
+                }
+            });
 
         // --- WEBSOCKET ---
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -130,10 +147,10 @@
             const container = document.getElementById('bus-list-content');
             if(container.querySelector('.fa-spin')) container.innerHTML = '';
 
-            // WebSocket থেকে আসলে আমরা ধরে নিই এটা 'LIVE' (Now)
+            // WebSocket data is always LIVE
             if (data.buses) {
                 data.buses.forEach(b => {
-                    b.is_live_socket = true; // Flag to indicate live data
+                    b.is_live_socket = true; 
                     updateBusState(b);
                 });
             } else {
@@ -142,20 +159,20 @@
             }
         };
 
-        // --- CORE UPDATE ---
+        // --- CORE UPDATE FUNCTION ---
         function updateBusState(bus) {
             
-            // [CRITICAL FIX] Time Logic
-            // যদি WebSocket থেকে আসে, তাহলে Current Time
-            // যদি API থেকে আসে, তাহলে Server এর last_seen ব্যবহার করব
+            // [CRITICAL LOGIC] Time Determination
+            // WebSocket = Now
+            // API (Reload) = Server's last_seen timestamp
             if (bus.is_live_socket) {
                 bus.client_receive_time = Date.now() / 1000;
             } else {
-                // API load (Reload) - পুরানো টাইম ধরে রাখা
+                // If reloading, respect the server's time
                 bus.client_receive_time = bus.last_seen || (Date.now() / 1000);
             }
 
-            // Remove IDLE
+            // Remove IDLE immediately
             if (bus.trip_status === 'IDLE') {
                 removeBus(bus.id);
                 return;
@@ -167,10 +184,13 @@
             updateMarker(bus);
             updateListCard(bus);
             
-            // Check Ghost Mode Immediately (যাতে লোড হওয়ার সাথে সাথেই ধূসর দেখায় যদি পুরানো হয়)
+            // [IMMEDIATE CHECK] Check if data is old right now (for reload case)
             checkGhostMode(bus);
 
-            if (selectedBusId === bus.id) updateDetailsHeader(bus);
+            if (selectedBusId === bus.id) {
+                updateDetailsHeader(bus);
+                renderTimeline(bus);
+            }
         }
 
         function removeBus(id) {
@@ -197,6 +217,9 @@
 
             if (markers[bus.id]) {
                 markers[bus.id].setLatLng([bus.lat, bus.lng]).setIcon(icon);
+                
+                // Note: We don't remove offline class here, 
+                // `markBusAsOnline` handles that to avoid flickering
             } else {
                 const marker = L.marker([bus.lat, bus.lng], { icon: icon }).addTo(map);
                 marker.on('click', () => selectBus(bus.id));
@@ -232,7 +255,6 @@
             `;
 
             if (card) {
-                // শুধু কনটেন্ট আপডেট করব, ক্লাস মুছব না (যাতে offline ক্লাস থেকে যায়)
                 card.innerHTML = html;
             } else {
                 card = document.createElement('div');
@@ -244,13 +266,12 @@
             }
         }
 
-        // --- GHOST MODE LOGIC (IMMEDIATE CHECK) ---
+        // --- GHOST MODE & TIMEOUT LOGIC ---
         function checkGhostMode(bus) {
             const now = Date.now() / 1000;
             const timeDiff = now - bus.client_receive_time;
             const SIGNAL_LOST_THRESHOLD = 60; // 1 Min
 
-            // যদি ১ মিনিটের বেশি হয়, সাথে সাথে গ্রে করে দাও
             if (timeDiff > SIGNAL_LOST_THRESHOLD) {
                 markBusAsOffline(bus);
             } else {
@@ -258,37 +279,36 @@
             }
         }
 
-        // --- WATCHER LOOP (PERIODIC CHECK) ---
         setInterval(() => {
             const now = Date.now() / 1000;
-            const SIGNAL_LOST_TIME = 60; 
-            const STAND_REMOVE_TIME = 120;
-            const TRIP_REMOVE_TIME = 1200;
+            const SIGNAL_LOST_TIME = 60;      // 1 Min -> Grey
+            const STAND_REMOVE_TIME = 120;    // 2 Min -> Remove (If Stand)
+            const TRIP_REMOVE_TIME = 1200;    // 20 Min -> Remove (If Trip)
 
             Object.keys(busesData).forEach(busId => {
                 const bus = busesData[busId];
-                const timeDiff = now - bus.client_receive_time;
+                const lastReceived = bus.client_receive_time || now;
+                const timeDiff = now - lastReceived;
 
                 const isAtStand = (bus.trip_status === 'READY' || bus.trip_status === 'IDLE' || bus.speed < 1);
                 const removeThreshold = isAtStand ? STAND_REMOVE_TIME : TRIP_REMOVE_TIME;
 
-                // 1. Remove Logic
+                // 1. Hard Remove
                 if (timeDiff > removeThreshold) {
+                    console.log(`❌ Removing bus ${bus.name} (Timeout: ${Math.round(timeDiff)}s)`);
                     removeBus(busId);
                     return;
                 }
 
-                // 2. Ghost Mode Logic
+                // 2. Check Signal Status
                 if (timeDiff > SIGNAL_LOST_TIME) {
                     markBusAsOffline(bus);
                 } else {
-                    // যদি টাইম ডিফারেন্স কমে যায় (নতুন ডেটা আসে), অনলাইন করো
-                    markBusAsOnline(bus); 
+                    markBusAsOnline(bus);
                 }
             });
-        }, 2000); // Check faster (2s)
+        }, 2000); // Check every 2s
 
-        // --- HELPER STYLES ---
         function markBusAsOffline(bus) {
             const card = document.getElementById(`card-${bus.id}`);
             if (card && !card.classList.contains('offline')) {
@@ -313,7 +333,7 @@
             const card = document.getElementById(`card-${bus.id}`);
             if (card && card.classList.contains('offline')) {
                 card.classList.remove('offline');
-                // ব্যাজ টেক্সট আগের অবস্থায় ফেরানো (updateListCard কল করলেই হবে)
+                // Restore badge text (Trigger re-render)
                 updateListCard(bus);
             }
             if (markers[bus.id]) {
@@ -335,6 +355,7 @@
             map.flyTo([bus.lat, bus.lng], 15, { duration: 1.2 });
             document.getElementById('details-panel').classList.add('open');
             updateDetailsHeader(bus);
+            renderTimeline(bus);
         }
 
         function closeDetails() {
@@ -358,13 +379,58 @@
             document.getElementById('d-status').innerText = statusText;
         }
 
-        // --- INITIAL LOAD ---
+        // --- TIMELINE RENDERER ---
+        function renderTimeline(bus) {
+            const container = document.getElementById('timeline-root');
+            const lastOrder = parseInt(bus.last_order) || 0;
+            const direction = bus.direction_status;
+            
+            let routeStops = globalStops.filter(s => s.route === bus.route);
+            if(direction === "CITY_TO_UNI") routeStops.sort((a, b) => b.order - a.order);
+            else routeStops.sort((a, b) => a.order - b.order);
+
+            if (routeStops.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-400">Route path unavailable</div>';
+                return;
+            }
+
+            let html = '';
+            routeStops.forEach((stop, index) => {
+                const stopOrder = parseInt(stop.order);
+                let stateClass = 'pending';
+                if (direction === "CITY_TO_UNI") {
+                    if (stopOrder > lastOrder) stateClass = 'completed';
+                    else if (stopOrder === lastOrder) stateClass = 'current';
+                } else {
+                    if (stopOrder < lastOrder) stateClass = 'completed';
+                    else if (stopOrder === lastOrder) stateClass = 'current';
+                }
+
+                html += `
+                    <div class="timeline-step ${stateClass}">
+                        <div class="step-indicator"></div>
+                        <div class="step-content">
+                            <div class="step-name">
+                                ${stop.name} 
+                                ${stateClass === 'current' ? '<span class="text-[10px] bg-blue-500 text-white px-1 rounded ml-1">LIVE</span>' : ''}
+                            </div>
+                            <div class="step-meta">
+                                ${stateClass === 'completed' ? 'Passed' : (stateClass === 'current' ? 'Current Location' : 'Upcoming')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        // --- INITIAL LOAD (Fix Reload Issue) ---
         fetch('/api/update-location/')
             .then(res => res.json())
             .then(data => {
                 if(data.status === 'success') {
                     data.buses.forEach(b => {
-                        b.is_live_socket = false; // এটা API থেকে এসেছে
+                        b.is_live_socket = false; // Flag for API data
                         updateBusState(b);
                     });
                 }
