@@ -66,7 +66,8 @@ class LocationUpdateView(View):
             cached_data = cache.get(redis_key)
 
             # --- DYNAMIC TIMEOUT LOGIC ---
-            # বাস ট্রিপে থাকলে ১০ মিনিট, স্ট্যান্ডে থাকলে ২ মিনিট পুরানো ডেটা এলাউড
+            # বাস ট্রিপে থাকলে ১০ মিনিট (নেটওয়ার্ক ইস্যুর জন্য সময় দেওয়া হলো)
+            # স্ট্যান্ডে থাকলে ২ মিনিট (ড্রাইভার অফ করলে দ্রুত ভ্যানিশ হবে)
             
             is_on_trip = bus.trip_status == 'ON_TRIP'
             timeout_minutes = 10 if is_on_trip else 2
@@ -75,10 +76,12 @@ class LocationUpdateView(View):
             should_include = False
             last_update_ts = None 
 
+            # A. ক্যাশ চেক
             if cached_data:
                 should_include = True
                 last_update_ts = now.timestamp()
             else:
+                # B. ডাটাবেস চেক
                 last_loc = BusLocation.objects.filter(bus=bus).order_by('-timestamp').first()
                 if last_loc:
                     if last_loc.timestamp >= time_threshold:
@@ -89,7 +92,7 @@ class LocationUpdateView(View):
                 current_dir = bus.last_direction if bus.last_direction else "STOPPED"
                 origin, dest = get_trip_info(bus, current_dir)
 
-                # Next Departure Message Logic for GET request
+                # Message Logic for GET request
                 next_departure_text = ""
                 if bus.trip_status == 'READY':
                     next_departure_text = "Departs in few min"
@@ -175,7 +178,7 @@ class LocationUpdateView(View):
                 elif device_direction == "CITY_TO_UNI":
                     bus_obj.last_stop_order = 999 
                 
-                # বাটন চাপলে আমরা বাসকে 'READY' স্টেটে নিয়ে যাবো
+                # বাটন চাপলে আমরা বাসকে সরাসরি 'READY' স্টেটে নিয়ে যাবো
                 bus_obj.trip_status = 'READY'
                 bus_obj.save()
                 
@@ -286,7 +289,7 @@ class LocationUpdateView(View):
             # ৬. মেসেজ এবং প্যাকেট তৈরি
             origin_name, dest_name = get_trip_info(bus_obj, final_direction)
             
-            # [NEW] Generic Time Message
+            # Generic Time Message for Real-time
             next_departure_text = ""
             if bus_obj.trip_status == 'READY':
                 next_departure_text = "Departs in few min"
@@ -301,7 +304,7 @@ class LocationUpdateView(View):
                 'traffic': traffic_status,
                 'direction_status': final_direction,
                 'trip_status': bus_obj.trip_status, 
-                'next_departure': next_departure_text, # [NEW]
+                'next_departure': next_departure_text, 
                 'status': 'stopped' if speed < 1 else 'moving',
                 
                 'current_stop': current_stop_name,
