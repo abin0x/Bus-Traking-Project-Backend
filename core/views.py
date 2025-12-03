@@ -7,6 +7,8 @@ from django.core.cache import cache
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from django.db.models import Max, Min
+from django.utils import timezone  # [NEW] Time calculation
+from datetime import timedelta     # [NEW] Time calculation
 from .models import Bus, BusLocation, BusStop
 from .utils import parse_sim7600_gps, calculate_distance
 
@@ -53,30 +55,57 @@ class LocationUpdateView(View):
 
     def get(self, request):
         """
-        [FRONTEND API] ম্যাপ লোডের জন্য (Initial State)
+        [FRONTEND API] ম্যাপ লোডের জন্য (With Timeout Logic)
         """
         active_buses = Bus.objects.filter(is_active=True).select_related('route')
         bus_list = []
+        
+        # বর্তমান সময়
+        now = timezone.now()
 
         for bus in active_buses:
             redis_key = f"bus_data_{bus.device_id}"
             cached_data = cache.get(redis_key)
 
-            # মেমোরি থেকে লাস্ট ডিরেকশন বের করা
-            current_dir = bus.last_direction if bus.last_direction else "STOPPED"
-            origin, dest = get_trip_info(bus, current_dir)
+            # --- 1. DYNAMIC TIMEOUT LOGIC ---
+            # বাস যদি ট্রিপে থাকে (Network Lost Issue), ৩০ মিনিট এলাউ করব।
+            # বাস যদি স্ট্যান্ডে থাকে (Driver Off Issue), ১০ মিনিট এলাউ করব।
+            is_on_trip = bus.trip_status == 'ON_TRIP'
+            timeout_minutes = 30 if is_on_trip else 10
+            time_threshold = now - timedelta(minutes=timeout_minutes)
 
+            should_include = False
+            last_update_ts = None # Timestamp for Frontend logic
+
+            # A. ক্যাশ চেক (Latest Data)
             if cached_data:
-                # Redis ডেটা থাকলেও DB থেকে লেটেস্ট স্ট্যাটাস নিচ্ছি
-                cached_data['last_order'] = bus.last_stop_order
-                cached_data['direction_status'] = current_dir
-                cached_data['trip_status'] = bus.trip_status # [NEW] Status added
-                cached_data['origin'] = origin
-                cached_data['destination'] = dest
-                bus_list.append(cached_data)
+                should_include = True
+                last_update_ts = now.timestamp() # Cache is always fresh
             else:
+                # B. ডাটাবেস চেক (Older Data)
                 last_loc = BusLocation.objects.filter(bus=bus).order_by('-timestamp').first()
                 if last_loc:
+                    if last_loc.timestamp >= time_threshold:
+                        should_include = True
+                        last_update_ts = last_loc.timestamp.timestamp()
+            
+            # যদি ডেটা ভ্যালিড হয়, তবেই লিস্টে যোগ করব
+            if should_include:
+                current_dir = bus.last_direction if bus.last_direction else "STOPPED"
+                origin, dest = get_trip_info(bus, current_dir)
+
+                if cached_data:
+                    # Redis Data Formatting
+                    cached_data['last_order'] = bus.last_stop_order
+                    cached_data['direction_status'] = current_dir
+                    cached_data['trip_status'] = bus.trip_status
+                    cached_data['origin'] = origin
+                    cached_data['destination'] = dest
+                    cached_data['last_seen'] = last_update_ts # [NEW] For JS Timer
+                    bus_list.append(cached_data)
+                else:
+                    # DB Data Formatting
+                    last_loc = BusLocation.objects.filter(bus=bus).order_by('-timestamp').first()
                     bus_list.append({
                         'id': bus.device_id,
                         'name': bus.name,
@@ -84,11 +113,12 @@ class LocationUpdateView(View):
                         'lat': last_loc.latitude,
                         'lng': last_loc.longitude,
                         'speed': last_loc.speed,
-                        'status': 'offline',
+                        'status': 'offline', # Offline but valid
                         'traffic': 'normal',
-                        'trip_status': bus.trip_status, # [NEW]
+                        'trip_status': bus.trip_status,
                         'direction_status': current_dir,
                         'last_update': str(last_loc.timestamp),
+                        'last_seen': last_update_ts, # [NEW] For JS Timer
                         'current_stop': None,
                         'at_stop': False,
                         'last_order': bus.last_stop_order,
@@ -112,7 +142,6 @@ class LocationUpdateView(View):
             # ১. ডেটা এক্সট্রাকশন
             incoming_bus_id = data.get('bus_id')
             raw_gps = data.get('gps_raw', '')
-            # ডিভাইস থেকে আসা ডিরেকশন (বাটন চাপলে ভ্যালু আসবে)
             device_direction = data.get('direction', 'STOPPED')
 
             # ২. বাস খুঁজে বের করা
@@ -126,11 +155,9 @@ class LocationUpdateView(View):
             # ==========================================
             manual_change_detected = False
             
-            # ড্রাইভার যদি বাটন চাপে (এবং সেটা আগের ডিরেকশন থেকে আলাদা হয়)
             if device_direction != 'STOPPED' and device_direction != bus_obj.last_direction:
                 print(f"🔘 Manual Button Pressed: {bus_obj.last_direction} -> {device_direction}")
                 
-                # ড্রাইভারের ইনপুট সবার আগে সেট হবে
                 bus_obj.last_direction = device_direction
                 
                 if device_direction == "UNI_TO_CITY":
@@ -138,11 +165,10 @@ class LocationUpdateView(View):
                 elif device_direction == "CITY_TO_UNI":
                     bus_obj.last_stop_order = 999 
                 
-                # ড্রাইভার বাটন চাপলে আমরা ধরে নিচ্ছি ট্রিপ শুরু হচ্ছে
                 bus_obj.trip_status = 'ON_TRIP'
                 bus_obj.save()
                 
-                manual_change_detected = True # ফ্ল্যাগ অন করলাম, যাতে অটো লজিক ওভাররাইড না করে
+                manual_change_detected = True 
 
             # ৩. জিপিএস পার্সিং
             parsed_data = parse_sim7600_gps(raw_gps)
@@ -169,13 +195,11 @@ class LocationUpdateView(View):
 
                     # --- ZONE A: START TERMINAL (University) ---
                     if dist_to_start <= 100:
-                        # Status Check (10-20 min before logic)
                         if speed < 3:
                             bus_obj.trip_status = 'READY'
                         else:
                             bus_obj.trip_status = 'ON_TRIP'
                         
-                        # Auto Direction (Only if manual button NOT pressed)
                         if not manual_change_detected:
                             if bus_obj.last_direction != "UNI_TO_CITY":
                                 bus_obj.last_direction = "UNI_TO_CITY"
@@ -184,17 +208,27 @@ class LocationUpdateView(View):
                         
                         bus_obj.save()
 
-                    # --- ZONE B: END TERMINAL (City) ---
+                    # --- ZONE B: END TERMINAL (City) - [UPDATED STRICT IDLE LOGIC] ---
                     elif dist_to_end <= 100:
-                        # Status Check (Auto Hide Logic)
-                        if speed < 3:
-                            bus_obj.trip_status = 'IDLE' # Trip Finished
-                            print(f"🏁 Trip Ended (Idle): {bus_obj.name}")
-                        else:
-                            # যদি এখানেও স্পিড থাকে, তার মানে বাস ঘুরছে বা রেডি হচ্ছে
-                            bus_obj.trip_status = 'READY'
                         
-                        # Auto Direction (Only if manual button NOT pressed)
+                        # লজিক: বাস যদি আগে থেকেই 'IDLE' থাকে (ঘুমন্ত)
+                        if bus_obj.trip_status == 'IDLE':
+                            # তাকে জাগাতে হলে স্পিড ১০ এর বেশি হতে হবে (GPS Drift protection)
+                            if speed > 10:
+                                bus_obj.trip_status = 'READY'
+                                print(f"🚀 {bus_obj.name} Waking up from IDLE")
+                            else:
+                                bus_obj.trip_status = 'IDLE' # Stay Asleep
+                        
+                        # লজিক: বাস এইমাত্র পৌঁছালো (আগে ON_TRIP/READY ছিল)
+                        else:
+                            if speed < 3:
+                                bus_obj.trip_status = 'IDLE' # Go to Sleep
+                                print(f"🏁 Trip Ended: {bus_obj.name} set to IDLE")
+                            else:
+                                bus_obj.trip_status = 'READY' # Parking...
+
+                        # Auto Direction
                         if not manual_change_detected:
                             if bus_obj.last_direction != "CITY_TO_UNI":
                                 bus_obj.last_direction = "CITY_TO_UNI"
@@ -204,32 +238,24 @@ class LocationUpdateView(View):
                         bus_obj.save()
 
                     # --- ZONE C: TRANSITION (Leaving Terminal) ---
-                    # 100m - 1000m range
                     elif (100 < dist_to_start <= 1000) or (100 < dist_to_end <= 1000):
                         
                         bus_obj.trip_status = 'ON_TRIP'
 
-                        # Auto Direction Switch logic
                         if not manual_change_detected:
-                            # If closer to Start -> Going towards City
                             if dist_to_start < dist_to_end:
                                 if bus_obj.last_direction != "UNI_TO_CITY":
                                     bus_obj.last_direction = "UNI_TO_CITY"
                                     bus_obj.last_stop_order = 0
-                                    print("🔄 Auto-Switch: Leaving Uni -> City")
-                            
-                            # If closer to End -> Going towards Uni
                             else:
                                 if bus_obj.last_direction != "CITY_TO_UNI":
                                     bus_obj.last_direction = "CITY_TO_UNI"
                                     bus_obj.last_stop_order = 999
-                                    print("🔄 Auto-Switch: Leaving City -> Uni")
                         
                         bus_obj.save()
 
                     # --- ZONE D: MIDDLE ROAD ---
                     else:
-                        # Ensure status is ON_TRIP
                         if bus_obj.trip_status != 'ON_TRIP':
                             bus_obj.trip_status = 'ON_TRIP'
                             bus_obj.save()
@@ -242,11 +268,9 @@ class LocationUpdateView(View):
             if speed < 5: traffic_status = 'heavy'
             elif speed < 25: traffic_status = 'medium'
 
-            # ৫. স্টপেজ লজিক (আপডেটেড ডিরেকশন অনুযায়ী)
+            # ৫. স্টপেজ লজিক
             current_stop_name = None
             is_at_stop = False
-            
-            # এখন আমরা নিশ্চিত `bus_obj.last_direction` সঠিক (ম্যানুয়াল বা অটো)
             final_direction = bus_obj.last_direction
 
             if bus_obj.route and final_direction != "STOPPED":
@@ -261,20 +285,16 @@ class LocationUpdateView(View):
                         should_update = False
                         
                         if final_direction == "UNI_TO_CITY":
-                            if stop.order > bus_obj.last_stop_order:
-                                should_update = True
+                            if stop.order > bus_obj.last_stop_order: should_update = True
                         elif final_direction == "CITY_TO_UNI":
-                            if stop.order < bus_obj.last_stop_order:
-                                should_update = True
+                            if stop.order < bus_obj.last_stop_order: should_update = True
                         
-                        if stop.order == bus_obj.last_stop_order:
-                             pass
+                        if stop.order == bus_obj.last_stop_order: pass
 
                         if should_update:
                             bus_obj.last_stop_order = stop.order
                             bus_obj.save()
                             print(f"📍 Progress ({final_direction}): Reached {stop.name}")
-                        
                         break 
 
             # ৬. প্যাকেট তৈরি
@@ -289,14 +309,15 @@ class LocationUpdateView(View):
                 'speed': speed,
                 'traffic': traffic_status,
                 'direction_status': final_direction,
-                'trip_status': bus_obj.trip_status, # 'READY', 'ON_TRIP', 'IDLE'
+                'trip_status': bus_obj.trip_status, 
                 'status': 'stopped' if speed < 1 else 'moving',
                 
                 'current_stop': current_stop_name,
                 'at_stop': is_at_stop,
                 'last_order': bus_obj.last_stop_order,
                 'origin': origin_name,
-                'destination': dest_name
+                'destination': dest_name,
+                'last_seen': timezone.now().timestamp() # [NEW] Added for frontend timer
             }
 
             redis_key = f"bus_data_{incoming_bus_id}"
@@ -337,5 +358,3 @@ def get_stops(request):
             "route": stop.route.name
         })
     return JsonResponse({'stops': data}, safe=False)
-
-# this is all most okay 
