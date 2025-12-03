@@ -66,9 +66,10 @@ class LocationUpdateView(View):
             cached_data = cache.get(redis_key)
 
             # --- DYNAMIC TIMEOUT LOGIC ---
-            # বাস ট্রিপে থাকলে ৩০ মিনিট, স্ট্যান্ডে থাকলে ১০ মিনিট পুরানো ডেটা এলাউড
+            # বাস ট্রিপে থাকলে ১০ মিনিট, স্ট্যান্ডে থাকলে ২ মিনিট পুরানো ডেটা এলাউড
+            
             is_on_trip = bus.trip_status == 'ON_TRIP'
-            timeout_minutes = 30 if is_on_trip else 10
+            timeout_minutes = 10 if is_on_trip else 2
             time_threshold = now - timedelta(minutes=timeout_minutes)
 
             should_include = False
@@ -163,7 +164,7 @@ class LocationUpdateView(View):
             # ==========================================
             manual_change_detected = False
             
-            # ড্রাইভার যদি বাটন চাপে
+            # ড্রাইভার যদি বাটন চাপে এবং ডিরেকশন চেঞ্জ করে
             if device_direction != 'STOPPED' and device_direction != bus_obj.last_direction:
                 print(f"🔘 Manual Button Pressed: {bus_obj.last_direction} -> {device_direction}")
                 

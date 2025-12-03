@@ -14,10 +14,17 @@ class Bus(models.Model):
     route = models.ForeignKey(Route, on_delete=models.SET_NULL, null=True, blank=True)
     api_key = models.CharField(max_length=100, default="secret_key") # Security
     is_active = models.BooleanField(default=True)
+    
+    # Tracking Fields
     last_stop_order = models.IntegerField(default=0) # শেষ কোন সিরিয়াল স্টপ পার করেছে
     last_direction = models.CharField(max_length=50, default="STOPPED")
+    
+    # Status Fields
     TRIP_STATUS_CHOICES = [('IDLE', 'Idle'), ('READY', 'Ready'), ('ON_TRIP', 'On Trip')]
     trip_status = models.CharField(max_length=20, choices=TRIP_STATUS_CHOICES, default='IDLE')
+    
+    # [NEW] বাসটি কখন টার্মিনালে এসে পৌঁছেছে (টাইমার দেখানোর জন্য জরুরি)
+    last_arrival_time = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.name} ({self.device_id})"
@@ -29,6 +36,11 @@ class BusLocation(models.Model):
     speed = models.FloatField(default=0.0)
     direction = models.CharField(max_length=20, blank=True)
     timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['bus', '-timestamp']), # কুয়েরি ফাস্ট করার জন্য ইনডেক্সিং
+        ]
 
     def __str__(self):
         return f"{self.bus.name} at {self.timestamp}"
@@ -45,12 +57,11 @@ class BusStop(models.Model):
     longitude = models.FloatField()
     
     # ৪. সিরিয়াল নম্বর (খুব গুরুত্বপূর্ণ)
-    # বাস কোনটার পর কোনটায় যাবে তা বোঝানোর জন্য (1, 2, 3...)
     order = models.PositiveIntegerField(default=0, help_text="Sequence number (e.g. 1, 2, 3)")
 
     class Meta:
-        ordering = ['order'] # ডাটাবেস থেকে আনার সময় অটোমেটিক সিরিয়াল অনুযায়ী আসবে
-        unique_together = ('route', 'order') # একই রুটে একই সিরিয়াল নম্বরের দুটি স্টপ হতে পারবে না
+        ordering = ['order']
+        unique_together = ('route', 'order')
 
     def __str__(self):
         return f"{self.order}. {self.name} ({self.route.name})"

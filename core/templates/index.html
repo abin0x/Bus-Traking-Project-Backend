@@ -214,8 +214,9 @@
 
         // --- CORE UPDATE FUNCTION ---
         function updateBusState(bus) {
-            // [NEW] Track Last Seen Time (Client Side)
-            bus.client_receive_time = Date.now() / 1000;
+            // [CRITICAL] Use server provided time if reload, else current time
+            // views.py থেকে 'last_seen' আসছে, সেটা ব্যবহার করছি
+            bus.client_receive_time = bus.last_seen || (Date.now() / 1000);
 
             // 1. Remove IDLE buses immediately
             if (bus.trip_status === 'IDLE') {
@@ -231,12 +232,12 @@
             // 3. Update Sidebar List
             updateListCard(bus);
             
-            // 4. Remove Offline Status (If it was ghost)
+            // 4. Reset Offline Status if bus sends data
             const card = document.getElementById(`card-${bus.id}`);
-            if(card) {
+            if(card && card.classList.contains('offline')) {
                 card.classList.remove('offline');
-                const badge = card.querySelector('.badge');
-                // Status text reset is handled in updateListCard
+                // Force update card content to remove 'SIGNAL LOST' text
+                updateListCard(bus);
             }
 
             // 5. Update Detail Panel
@@ -256,9 +257,9 @@
 
         // --- MARKER UPDATE ---
         function updateMarker(bus) {
-            let color = '#3b82f6'; // Blue
-            if (bus.at_stop) color = '#7c3aed'; // Purple
-            if (bus.trip_status === 'READY') color = '#eab308'; // Amber
+            let color = '#3b82f6'; // Blue (On Trip)
+            if (bus.at_stop) color = '#7c3aed'; // Purple (At Stop)
+            if (bus.trip_status === 'READY') color = '#eab308'; // Amber (Ready)
 
             const iconHtml = `
                 <div class="pro-marker" style="width:40px; height:40px; background:${color}; position:relative;">
@@ -270,7 +271,8 @@
 
             if (markers[bus.id]) {
                 markers[bus.id].setLatLng([bus.lat, bus.lng]).setIcon(icon);
-                // Remove offline class if exists
+                
+                // Ensure marker isn't grey if online
                 const el = markers[bus.id].getElement();
                 if(el) {
                     const inner = el.querySelector('.pro-marker');
@@ -328,38 +330,43 @@
         // --- WATCHER LOOP (GHOST MODE & CLEANUP) ---
         setInterval(() => {
             const now = Date.now() / 1000;
-            const IDLE_TIMEOUT = 300;       // 5 Minutes (Max wait for stopped bus)
-            const TRIP_TIMEOUT = 1800;      // 30 Minutes (Max wait for trip bus)
-            const SIGNAL_LOST_THRESHOLD = 300; // 5 Minutes
+            const SIGNAL_LOST_TIME = 60;      // 1 Min -> Grey
+            const STAND_REMOVE_TIME = 120;    // 2 Min -> Remove (If Ready/Slow)
+            const TRIP_REMOVE_TIME = 1200;    // 20 Min -> Remove (If Trip)
 
             Object.keys(busesData).forEach(busId => {
                 const bus = busesData[busId];
+                // Use stored time from server or last socket update
                 const lastReceived = bus.client_receive_time || now;
                 const timeDiff = now - lastReceived;
 
-                const isOnTrip = bus.trip_status === 'ON_TRIP';
-                const maxTimeout = isOnTrip ? TRIP_TIMEOUT : IDLE_TIMEOUT;
+                const isAtStand = (bus.trip_status === 'READY' || bus.trip_status === 'IDLE' || bus.speed < 1);
+                const removeThreshold = isAtStand ? STAND_REMOVE_TIME : TRIP_REMOVE_TIME;
 
                 // 1. HARD REMOVE
-                if (timeDiff > maxTimeout) {
-                    console.log(`❌ Removing bus ${bus.name} (Timeout)`);
+                if (timeDiff > removeThreshold) {
+                    console.log(`❌ Removing bus ${bus.name} (Timeout: ${Math.round(timeDiff)}s)`);
                     removeBus(busId);
                     return;
                 }
 
                 // 2. GHOST MODE (Grey out)
-                if (timeDiff > SIGNAL_LOST_THRESHOLD) {
+                if (timeDiff > SIGNAL_LOST_TIME) {
                     markBusAsOffline(bus);
                 }
             });
-        }, 5000); // Every 5 seconds
+        }, 5000);
 
         function markBusAsOffline(bus) {
             const card = document.getElementById(`card-${bus.id}`);
             if (card && !card.classList.contains('offline')) {
                 card.classList.add('offline');
                 const badge = card.querySelector('.badge');
-                if(badge) badge.innerText = 'SIGNAL LOST';
+                if(badge) {
+                    badge.innerText = 'SIGNAL LOST';
+                    badge.style.background = '#e2e8f0'; 
+                    badge.style.color = '#64748b';
+                }
             }
 
             if (markers[bus.id]) {
@@ -380,7 +387,7 @@
             const card = document.getElementById(`card-${id}`);
             if(card) card.classList.add('active');
 
-            map.flyTo([bus.lat, bus.lng], 15, { duration: 1.2 }); // 1
+            map.flyTo([bus.lat, bus.lng], 15, { duration: 1.2 });
             document.getElementById('details-panel').classList.add('open');
             updateDetailsHeader(bus);
             renderTimeline(bus);
@@ -458,11 +465,14 @@
             container.innerHTML = html;
         }
 
-        // Initial Load
+        // [CRITICAL] INITIAL LOAD FROM API (Handles Reload Persistence)
         fetch('/api/update-location/')
             .then(res => res.json())
             .then(data => {
-                if(data.status === 'success') data.buses.forEach(updateBusState);
+                if(data.status === 'success') {
+                    // বাস লিস্ট পপুলেট হবে এবং রিলোড হলেও ডেটা দেখাবে
+                    data.buses.forEach(updateBusState);
+                }
             });
 
     </script>
