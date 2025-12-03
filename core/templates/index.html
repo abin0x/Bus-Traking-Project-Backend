@@ -3,770 +3,639 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Smart Campus Transit</title>
+    <title>Fleet Command Center</title>
     
-    <!-- Dependencies -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Professional Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Tailwind CSS (for layout) -->
+    <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
+        /* --- PROFESSIONAL THEME VARIABLES --- */
         :root {
-            --primary: #2563eb;
-            --primary-dark: #1d4ed8;
-            --surface: rgba(255, 255, 255, 0.95);
-            --bg: #f8fafc;
-            --text-main: #0f172a;
+            --primary: #0f172a;      /* Slate 900 */
+            --accent: #3b82f6;       /* Blue 500 */
+            --success: #10b981;      /* Emerald 500 */
+            --warning: #f59e0b;      /* Amber 500 */
+            --danger: #ef4444;       /* Red 500 */
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text-main: #1e293b;
             --text-sub: #64748b;
-            --shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.1);
-            --radius: 16px;
-            --purple: #7c3aed;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
-        body { height: 100vh; width: 100vw; overflow: hidden; background: var(--bg); display: flex; flex-direction: column; }
-
-        /* --- MODERN NAVBAR --- */
-        .navbar {
-            height: 70px;
-            background: var(--surface);
-            backdrop-filter: blur(16px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 32px;
-            z-index: 2000;
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+            overflow: hidden;
         }
 
-        .nav-brand {
-            font-size: 1.4rem;
-            font-weight: 800;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            text-decoration: none;
-            letter-spacing: -0.5px;
-        }
-        .nav-brand i { 
-            color: var(--primary); 
-            background: rgba(37, 99, 235, 0.1);
-            padding: 8px;
-            border-radius: 10px;
-        }
-
-        .nav-links { display: flex; gap: 8px; align-items: center; }
-
-        .nav-item {
-            text-decoration: none;
-            color: var(--text-sub);
-            font-weight: 600;
-            font-size: 0.9rem;
-            padding: 8px 16px;
-            border-radius: 8px;
-            transition: all 0.2s;
-            display: flex; align-items: center; gap: 6px;
-        }
-        .nav-item:hover { color: var(--primary); background: rgba(37, 99, 235, 0.05); }
-        .nav-item i { font-size: 0.9rem; opacity: 0.8; }
-
-        /* Modern Buttons */
-        .btn-auth {
-            padding: 10px 20px;
-            border-radius: 10px;
-            font-weight: 700;
-            font-size: 0.9rem;
-            text-decoration: none;
-            transition: all 0.2s;
-            display: inline-flex; align-items: center; gap: 6px;
-        }
-        .btn-login {
-            color: var(--text-main);
-            background: transparent;
-            border: 1px solid #e2e8f0;
-        }
-        .btn-login:hover { background: #f1f5f9; border-color: #cbd5e1; }
-        
-        .btn-signup {
-            background: var(--primary);
-            color: white;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
-            border: 1px solid var(--primary);
-        }
-        .btn-signup:hover { background: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35); }
-
-        /* --- MAP LAYER CONTROL (NEW) --- */
-        .layer-control {
+        /* --- MAP LAYER --- */
+        #map-container {
             position: absolute;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: white;
-            padding: 5px;
-            border-radius: 50px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            z-index: 1000;
-            display: flex;
-            gap: 5px;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 0;
         }
-        .layer-btn {
-            border: none;
-            background: transparent;
-            padding: 8px 20px;
-            border-radius: 40px;
-            font-weight: 700;
-            font-size: 0.85rem;
-            color: var(--text-sub);
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex; align-items: center; gap: 6px;
-        }
-        .layer-btn.active {
-            background: var(--text-main);
-            color: white;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-        }
-        .layer-btn:hover:not(.active) { background: #f1f5f9; }
 
-        /* --- MAP CONTAINER --- */
-        #main-container { flex: 1; position: relative; width: 100%; height: calc(100vh - 70px); }
-        #map { height: 100%; width: 100%; z-index: 1; }
-
-        /* --- LEFT SIDEBAR --- */
-        #left-panel {
+        /* --- SIDEBAR (LEFT) --- */
+        .sidebar {
             position: absolute;
-            top: 20px; left: 20px; bottom: 80px; /* Adjusted for layer control */
-            width: 320px;
+            top: 20px; bottom: 20px; left: 20px;
+            width: 380px;
             background: var(--surface);
-            backdrop-filter: blur(12px);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            z-index: 1000;
+            border-radius: 12px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
             display: flex;
             flex-direction: column;
-            border: 1px solid rgba(255,255,255,0.6);
+            z-index: 1000;
+            border: 1px solid var(--border);
+            overflow: hidden;
             transition: transform 0.3s ease;
         }
 
-        .panel-header {
-            padding: 18px 24px;
-            border-bottom: 1px solid #e2e8f0;
-            display: flex; justify-content: space-between; align-items: center;
+        .sidebar-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            background: #f8fafc;
         }
-        .panel-title { font-size: 1rem; font-weight: 700; color: var(--text-main); }
-        .live-dot { height: 8px; width: 8px; background: #10b981; border-radius: 50%; box-shadow: 0 0 0 4px #d1fae5; }
 
-        #bus-list-container { flex: 1; overflow-y: auto; padding: 16px; }
-
-        .bus-item {
-            background: #fff;
-            padding: 14px;
-            border-radius: 12px;
-            margin-bottom: 10px;
-            border: 1px solid #e2e8f0;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .bus-item:hover { transform: translateY(-2px); border-color: var(--primary); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .bus-item.selected { border-color: var(--primary); background: #eff6ff; }
-
-        .bus-info h4 { font-size: 0.95rem; margin-bottom: 3px; color: var(--text-main); font-weight: 700; }
-        .bus-info p { font-size: 0.75rem; color: var(--text-sub); display: flex; align-items: center; gap: 4px; }
-        
-        .mini-badge { font-size: 0.65rem; padding: 4px 8px; border-radius: 6px; font-weight: 700; text-transform: uppercase; }
-        .bg-green { background: #dcfce7; color: #166534; }
-        .bg-red { background: #fee2e2; color: #991b1b; }
-        .bg-purple { background: #f3e8ff; color: #6b21a8; }
-        .bg-blue { background: #dbeafe; color: #1e40af; }
-
-        /* --- RIGHT SIDEBAR --- */
-        #right-panel {
-            position: absolute;
-            top: 20px; right: 20px; bottom: 80px;
-            width: 360px;
-            background: var(--surface);
-            backdrop-filter: blur(12px);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            z-index: 1000;
-            display: flex; flex-direction: column;
-            transform: translateX(120%);
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        #right-panel.active { transform: translateX(0); }
-
-        .detail-header {
-            padding: 24px; background: var(--primary); color: white;
-            border-radius: var(--radius) var(--radius) 0 0;
-            position: relative;
-        }
-        .close-btn {
-            position: absolute; top: 15px; right: 15px;
-            background: rgba(255,255,255,0.2); border: none;
-            color: white; width: 32px; height: 32px; border-radius: 50%;
-            cursor: pointer; display: flex; align-items: center; justify-content: center;
-            transition: background 0.2s;
-        }
-        .close-btn:hover { background: rgba(255,255,255,0.3); }
-
-        .trip-info {
-            display: flex; justify-content: space-between; padding: 16px 24px;
-            background: #f8fafc; border-bottom: 1px solid #e2e8f0;
-        }
-        .trip-box { text-align: center; width: 45%; }
-        .trip-label { font-size: 0.7rem; color: var(--text-sub); font-weight: 700; letter-spacing: 0.5px; }
-        .trip-val { font-size: 0.9rem; font-weight: 800; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 4px; }
-
-        /* Timeline Styles */
-        .timeline-wrapper { flex: 1; overflow-y: auto; padding: 24px; }
-        .timeline-container { position: relative; padding-left: 15px; border-left: 2px solid #e2e8f0; margin-left: 10px; }
-        .timeline-stop { position: relative; padding-left: 30px; margin-bottom: 28px; }
-        
-        .stop-dot {
-            position: absolute; left: -7px; top: 4px;
-            width: 12px; height: 12px; border-radius: 50%;
-            background: #cbd5e1; border: 2px solid #fff; box-shadow: 0 0 0 1px #cbd5e1;
-            transition: all 0.3s;
-        }
-        .stop-name { font-size: 0.95rem; color: var(--text-sub); transition: all 0.3s; font-weight: 500; }
-
-        .passed .stop-name { text-decoration: line-through; opacity: 0.5; }
-        .active .stop-name { color: var(--primary); font-weight: 700; transform: translateX(4px); display: inline-block; }
-        .active .stop-dot { background: var(--primary); border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2); }
-        .arrived .stop-name { color: var(--purple); font-weight: 700; }
-        .arrived .stop-dot { background: var(--purple); border-color: var(--purple); animation: pulse-purple 1.5s infinite; }
-        .upcoming .stop-name { color: #0f172a; font-weight: 600; }
-
-        @keyframes pulse-purple { 0% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4); } 100% { box-shadow: 0 0 0 6px rgba(124, 58, 237, 0); } }
-
-        /* Current Stop Highlight */
-        .current-stop-info {
-            background: #f3e8ff;
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin: 16px 24px;
+        .brand {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
             display: flex;
             align-items: center;
             gap: 10px;
         }
-        .current-stop-info i { color: var(--purple); font-size: 1.2rem; }
 
-        /* Markers */
-        .custom-pin { width: 36px; height: 36px; border-radius: 50%; background: var(--primary); border: 3px solid white; box-shadow: 0 4px 8px rgba(0,0,0,0.3); display: flex; justify-content: center; align-items: center; color: white; }
-        .pin-pulse { position: absolute; top: -10px; left: -10px; right: -10px; bottom: -10px; border-radius: 50%; background: rgba(59, 130, 246, 0.4); animation: pulse-blue 2s infinite; z-index: -1; }
-        @keyframes pulse-blue { 0% { transform: scale(0.5); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
+        .brand-icon {
+            width: 32px; height: 32px;
+            background: var(--primary);
+            color: white;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px;
+        }
 
-        /* Mobile */
-        .mobile-menu-btn { display: none; background: none; border: none; font-size: 1.5rem; color: var(--text-main); cursor: pointer; }
-        @media (max-width: 768px) {
-            .navbar { padding: 0 20px; height: 60px; }
-            .nav-links { display: none; }
-            .mobile-menu-btn { display: block; }
-            #left-panel { width: 100%; height: 200px; bottom: 0; top: auto; left: 0; right: 0; border-radius: 20px 20px 0 0; z-index: 1500; }
-            #right-panel { width: 100%; height: 75vh; bottom: 0; top: auto; right: 0; transform: translateY(120%); border-radius: 20px 20px 0 0; z-index: 1600; }
-            .layer-control { bottom: 220px; width: auto; }
+        /* --- BUS LIST ITEMS --- */
+        .bus-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .bus-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bus-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .bus-card.active {
+            border-color: var(--accent);
+            background: #eff6ff;
+            border-left: 4px solid var(--accent);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .bus-name { font-weight: 700; color: var(--text-main); font-size: 1rem; }
+        
+        /* Status Badges */
+        .badge {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 99px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .badge-trip { background: #dcfce7; color: #166534; }
+        .badge-ready { background: #fef9c3; color: #854d0e; }
+        .badge-stop { background: #f3e8ff; color: #6b21a8; }
+
+        .bus-meta {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            color: var(--text-sub);
+            font-size: 0.85rem;
+            margin-top: 8px;
         }
         
-        .no-data { text-align: center; color: #94a3b8; margin-top: 50px; font-size: 0.9rem; }
-        
-        /* Debug Panel */
-        .debug-panel {
+        .meta-item { display: flex; align-items: center; gap: 6px; }
+
+        /* --- RIGHT DETAILS PANEL (SLIDE IN) --- */
+        .details-panel {
             position: absolute;
-            bottom: 100px;
-            left: 20px;
-            background: rgba(0,0,0,0.8);
+            top: 20px; right: 20px; bottom: 20px;
+            width: 400px;
+            background: var(--surface);
+            border-radius: 12px;
+            box-shadow: -10px 0 25px -5px rgba(0, 0, 0, 0.1);
+            z-index: 1001;
+            transform: translateX(120%);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--border);
+        }
+
+        .details-panel.open { transform: translateX(0); }
+
+        .panel-content { flex: 1; overflow-y: auto; padding: 0; }
+
+        /* --- HERO HEADER IN DETAILS --- */
+        .details-hero {
+            background: var(--primary);
             color: white;
-            padding: 10px;
+            padding: 24px;
+            border-radius: 12px 12px 0 0;
+            position: relative;
+        }
+
+        .close-btn {
+            position: absolute; top: 16px; right: 16px;
+            background: rgba(255,255,255,0.1);
+            border: none; color: white;
+            width: 32px; height: 32px; border-radius: 50%;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.2s;
+        }
+        .close-btn:hover { background: rgba(255,255,255,0.2); }
+
+        .hero-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }
+        .hero-route { font-size: 0.9rem; opacity: 0.8; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .stat-box {
+            background: rgba(255,255,255,0.1);
+            padding: 12px;
             border-radius: 8px;
-            font-size: 12px;
-            z-index: 1000;
-            max-width: 300px;
-            display: none;
+            backdrop-filter: blur(4px);
+        }
+        .stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.7; }
+        .stat-value { font-size: 1.1rem; font-weight: 700; margin-top: 4px; }
+
+        /* --- MODERN TIMELINE (THE STAR FEATURE) --- */
+        .timeline-container {
+            padding: 24px;
+        }
+        
+        .section-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-sub);
+            letter-spacing: 0.05em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* Vertical Progress Line */
+        .route-timeline {
+            position: relative;
+            margin-left: 10px;
+            padding-left: 30px;
+        }
+        
+        /* The Grey Line behind everything */
+        .route-timeline::before {
+            content: '';
+            position: absolute;
+            top: 5px; bottom: 5px; left: 7px;
+            width: 2px;
+            background: #e2e8f0;
+            z-index: 0;
+        }
+
+        .timeline-step {
+            position: relative;
+            margin-bottom: 24px;
+            z-index: 1;
+        }
+
+        .step-indicator {
+            position: absolute;
+            left: -34px; top: 0;
+            width: 16px; height: 16px;
+            border-radius: 50%;
+            background: white;
+            border: 2px solid #cbd5e1;
+            transition: all 0.3s ease;
+            z-index: 2;
+        }
+
+        .step-content {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .step-name { font-size: 0.95rem; font-weight: 500; color: var(--text-main); }
+        .step-meta { font-size: 0.75rem; color: var(--text-sub); margin-top: 2px; }
+
+        /* -- STATES -- */
+        
+        /* 1. COMPLETED (Passed) */
+        .timeline-step.completed .step-indicator {
+            background: var(--text-sub);
+            border-color: var(--text-sub);
+            box-shadow: 0 0 0 4px white; /* Gap effect */
+        }
+        .timeline-step.completed .step-name {
+            color: var(--text-sub);
+            text-decoration: line-through;
+        }
+        
+        /* 2. CURRENT (Live) */
+        .timeline-step.current .step-indicator {
+            background: var(--accent);
+            border-color: var(--accent);
+            width: 20px; height: 20px; /* Slightly bigger */
+            left: -36px; top: -2px;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+            animation: pulse-ring 2s infinite;
+        }
+        .timeline-step.current .step-name {
+            color: var(--accent);
+            font-weight: 700;
+            font-size: 1rem;
+        }
+        .live-tag {
+            display: inline-block;
+            background: var(--accent);
+            color: white;
+            font-size: 0.6rem;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 8px;
+            vertical-align: middle;
+            animation: bounce 1s infinite alternate;
+        }
+
+        /* 3. PENDING (Future) */
+        .timeline-step.pending .step-indicator {
+            background: white;
+            border-color: #cbd5e1;
+        }
+
+        /* Animations */
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+        @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-2px); } }
+
+        /* --- MAP MARKER STYLE --- */
+        .pro-marker {
+            background: var(--primary);
+            border: 2px solid white;
+            border-radius: 50%;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            display: flex; justify-content: center; align-items: center;
+            color: white;
+        }
+        .marker-arrow {
+            width: 0; height: 0; 
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-bottom: 8px solid white;
+            position: absolute; top: -12px;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .sidebar { width: 100%; top: auto; bottom: 0; left: 0; right: 0; height: 45vh; border-radius: 20px 20px 0 0; }
+            .details-panel { width: 100%; top: auto; bottom: 0; left: 0; right: 0; height: 80vh; border-radius: 20px 20px 0 0; transform: translateY(110%); }
+            .details-panel.open { transform: translateY(0); }
         }
     </style>
 </head>
 <body>
 
-    <!-- MODERN NAVBAR -->
-    <nav class="navbar">
-        <a href="/" class="nav-brand">
-            <i class="fas fa-bus-alt"></i> Campus Transit
-        </a>
+    <!-- MAP BACKGROUND -->
+    <div id="map-container"></div>
+
+    <!-- LEFT SIDEBAR: BUS LIST -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="brand">
+                <div class="brand-icon"><i class="fas fa-bus-alt"></i></div>
+                <div>FLEET<span style="color:var(--text-sub); font-weight:400;">TRACK</span></div>
+            </div>
+            <div class="flex items-center gap-2 mt-4 text-xs text-gray-500 font-medium">
+                <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-green-500"></div> Active</span>
+                <span class="flex items-center gap-1 ml-3"><div class="w-2 h-2 rounded-full bg-yellow-500"></div> Ready</span>
+            </div>
+        </div>
+
+        <div class="bus-list" id="bus-list-content">
+            <!-- Loading State -->
+            <div class="text-center text-gray-400 mt-10">
+                <i class="fas fa-circle-notch fa-spin mb-2"></i>
+                <p class="text-xs">Connecting to satellite...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT PANEL: DETAILS & TIMELINE -->
+    <div class="details-panel" id="details-panel">
         
-        <div class="nav-links">
-            <a href="#" class="nav-item">Schedule</a>
-            <a href="#" class="nav-item">Routes</a>
-            <a href="#" class="nav-item"><i class="fas fa-search-location"></i> Lost & Found</a>
+        <!-- 1. HERO SECTION -->
+        <div class="details-hero">
+            <button class="close-btn" onclick="closeDetails()"><i class="fas fa-times"></i></button>
             
-            <div style="width: 1px; height: 24px; background: #e2e8f0; margin: 0 10px;"></div>
-
-            {% if user.is_authenticated %}
-                <span class="nav-item" style="color: var(--text-main); font-weight:700;">{{ user.username }}</span>
-                <a href="/admin/logout/" class="btn-auth btn-login">Log Out</a>
-            {% else %}
-                <a href="/admin/login/" class="btn-auth btn-login">Log In</a>
-                <a href="#" class="btn-auth btn-signup">Sign Up</a>
-            {% endif %}
-        </div>
-
-        <button class="mobile-menu-btn"><i class="fas fa-bars"></i></button>
-    </nav>
-
-    <!-- MAIN CONTAINER -->
-    <div id="main-container">
-        
-        <!-- LEFT PANEL -->
-        <div id="left-panel">
-            <div class="panel-header">
-                <div class="panel-title">Active Buses</div>
-                <div class="live-dot" id="conn-indicator"></div>
+            <h1 class="hero-title" id="d-name">Bus Name</h1>
+            <div class="hero-route" id="d-route">
+                <span>Start</span> <i class="fas fa-arrow-right text-xs opacity-50"></i> <span>End</span>
             </div>
-            <div id="bus-list-container">
-                <div class="no-data"><i class="fas fa-circle-notch fa-spin"></i> Connecting...</div>
-            </div>
-        </div>
 
-        <!-- RIGHT PANEL -->
-        <div id="right-panel">
-            <div class="detail-header">
-                <h2 id="d-bus-name" style="margin:0; font-size: 1.3rem; font-weight: 800;">Select Bus</h2>
-                <p id="d-route-name" style="margin:5px 0 0 0; font-size: 0.9rem; opacity: 0.9;">--</p>
-                <button class="close-btn" onclick="closeRightPanel()"><i class="fas fa-times"></i></button>
-            </div>
-            
-            <div class="trip-info">
-                <div class="trip-box">
-                    <div class="trip-label">START</div>
-                    <div class="trip-val" id="d-start">--</div>
+            <div class="stat-grid">
+                <div class="stat-box">
+                    <div class="stat-label">Current Speed</div>
+                    <div class="stat-value"><span id="d-speed">0</span> <span class="text-sm font-normal opacity-70">km/h</span></div>
                 </div>
-                <div style="align-self:center; color:#cbd5e1;"><i class="fas fa-arrow-right"></i></div>
-                <div class="trip-box">
-                    <div class="trip-label">DESTINATION</div>
-                    <div class="trip-val" id="d-end">--</div>
+                <div class="stat-box">
+                    <div class="stat-label">Status</div>
+                    <div class="stat-value text-sm" id="d-status">ON TRIP</div>
                 </div>
             </div>
+        </div>
 
-            <!-- Current Stop Info -->
-            <div id="d-current-stop" class="current-stop-info" style="display: none;">
-                <i class="fas fa-map-marker-alt"></i>
-                <div>
-                    <div style="font-size: 0.8rem; color: #6b21a8;">CURRENT STOP</div>
-                    <div id="d-current-stop-name" style="font-weight: 700; color: #0f172a;">--</div>
+        <div class="panel-content">
+            <!-- 2. PROFESSIONAL TIMELINE -->
+            <div class="timeline-container">
+                <div class="section-label">Route Progress</div>
+                
+                <div class="route-timeline" id="timeline-root">
+                    <!-- Javascript will inject steps here -->
+                    <div class="text-center text-gray-400 text-sm py-4">Select a bus to view live route</div>
                 </div>
             </div>
-
-            <div style="padding: 16px 24px; border-bottom: 1px solid #e2e8f0; display:flex; justify-content:space-between; align-items: center;">
-                <div style="font-size:1rem; font-weight:700; color:var(--text-main);">
-                    <i class="fas fa-tachometer-alt" style="color:var(--primary);"></i> <span id="d-speed">0.0</span> <span style="font-size:0.8rem; font-weight:500; color:var(--text-sub);">km/h</span>
-                </div>
-                <div id="d-status-badge" class="mini-badge bg-green">MOVING</div>
-            </div>
-
-            <div class="timeline-wrapper" id="d-timeline">
-                <div style="text-align:center; color:#94a3b8; margin-top:20px;">Select a bus to view timeline</div>
-            </div>
         </div>
-
-        <!-- Debug Panel (Optional) -->
-        <div class="debug-panel" id="debug-panel">
-            <div>Debug Info</div>
-            <div id="debug-info"></div>
-        </div>
-
-        <!-- LAYER CONTROL (NEW) -->
-        <div class="layer-control">
-            <button class="layer-btn active" onclick="setMapType('street')">
-                <i class="fas fa-map"></i> Map
-            </button>
-            <button class="layer-btn" onclick="setMapType('satellite')">
-                <i class="fas fa-satellite"></i> Satellite
-            </button>
-        </div>
-
-        <!-- MAP -->
-        <div id="map"></div>
     </div>
 
     <!-- Scripts -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/@turf/turf/turf.min.js"></script>
-
+    
     <script>
-        // --- 1. Map Init & Layers ---
-        const map = L.map('map', { zoomControl: false }).setView([23.8103, 90.4125], 13);
-        L.control.zoom({ position: 'bottomright' }).addTo(map);
+        // --- CONFIGURATION ---
+        const map = L.map('map-container', { zoomControl: false }).setView([23.8103, 90.4125], 13);
+        L.control.zoom({ position: 'topright' }).addTo(map);
 
-        // Layers
-        const streetLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-            attribution: '© OpenStreetMap, © CartoDB', maxZoom: 20
-        });
+        // Professional Map Tiles (CartoDB Voyager - Clean & Modern)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap &copy; CARTO',
+            maxZoom: 20
+        }).addTo(map);
 
-        const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Tiles &copy; Esri', maxZoom: 19
-        });
-        
-        // Add default layer
-        streetLayer.addTo(map);
-
-        function setMapType(type) {
-            const btns = document.querySelectorAll('.layer-btn');
-            btns.forEach(b => b.classList.remove('active'));
-
-            if (type === 'street') {
-                map.removeLayer(satelliteLayer);
-                map.addLayer(streetLayer);
-                btns[0].classList.add('active');
-            } else {
-                map.removeLayer(streetLayer);
-                map.addLayer(satelliteLayer);
-                btns[1].classList.add('active');
-            }
-        }
-
-        // --- 2. Variables ---
+        // State Management
         const markers = {};
+        const busesData = {};
         let globalStops = [];
-        let busesData = {}; 
-        let selectedBusId = null; 
-        let debugMode = false; // Set to true to enable debug
+        let selectedBusId = null;
 
-        // --- 3. Fetch Stops ---
+        // --- FETCH STOPS ---
         fetch('/api/stops/')
             .then(res => res.json())
             .then(data => {
                 if(data.stops) {
                     globalStops = data.stops;
-                    console.log("📍 Loaded stops:", globalStops.length);
-                    
+                    // Draw subtle route points on map
                     data.stops.forEach(stop => {
                         L.circleMarker([stop.lat, stop.lng], {
-                            radius: 4, 
-                            fillColor: "#94a3b8", 
-                            color: "white", 
-                            weight: 1, 
-                            fillOpacity: 0.9
-                        })
-                        .bindPopup(`<b>${stop.name}</b><br>Route: ${stop.route}<br>Order: ${stop.order}`)
-                        .addTo(map);
+                            radius: 3, color: 'transparent', fillColor: '#94a3b8', fillOpacity: 0.5
+                        }).addTo(map);
                     });
                 }
-            })
-            .catch(err => console.error("Error loading stops:", err));
+            });
 
-        // --- 4. WebSocket ---
+        // --- WEBSOCKET CONNECTION ---
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const socket = new WebSocket(protocol + '//' + window.location.host + '/ws/tracking/');
 
-        socket.onopen = () => {
-            console.log("✅ WebSocket connected");
-            document.getElementById('conn-indicator').style.background = '#10b981';
-        };
-        
-        socket.onclose = () => {
-            console.log("❌ WebSocket disconnected");
-            document.getElementById('conn-indicator').style.background = '#ef4444';
-        };
-        
-        socket.onerror = (error) => {
-            console.error("WebSocket error:", error);
-        };
-
         socket.onmessage = (e) => {
-            try {
-                const data = JSON.parse(e.data);
-                const container = document.getElementById('bus-list-container');
-                if(container.querySelector('.no-data')) container.innerHTML = '';
+            const data = JSON.parse(e.data);
+            const listContainer = document.getElementById('bus-list-content');
+            
+            // Clear loader on first data
+            if(listContainer.querySelector('.fa-spin')) listContainer.innerHTML = '';
 
-                console.log("📥 Received data:", data);
-
-                if (data.buses) { 
-                    data.buses.forEach(processBusData);
-                } else { 
-                    processBusData(data);
-                }
-
-                // Debug info
-                if (debugMode) {
-                    document.getElementById('debug-info').innerHTML = `
-                        Last update: ${new Date().toLocaleTimeString()}<br>
-                        Total buses: ${Object.keys(busesData).length}<br>
-                        Selected: ${selectedBusId || 'none'}
-                    `;
-                }
-            } catch (error) {
-                console.error("Error processing WebSocket message:", error);
-            }
+            if (data.buses) data.buses.forEach(updateBusState);
+            else updateBusState(data);
         };
 
-        function processBusData(bus) {
-            console.log("🔄 Processing bus:", bus.id, bus.name, "at_stop:", bus.at_stop, "last_order:", bus.last_order);
-            
-            // Ensure at_stop property exists
-            if (bus.at_stop === undefined) {
-                bus.at_stop = false;
-                console.warn(`⚠️ Bus ${bus.id} missing at_stop property, setting to false`);
+        function updateBusState(bus) {
+            // Remove IDLE buses
+            if (bus.trip_status === 'IDLE') {
+                removeBus(bus.id);
+                return;
             }
+
+            busesData[bus.id] = bus;
             
-            // Ensure last_order property exists
-            if (bus.last_order === undefined) {
-                bus.last_order = 0;
-                console.warn(`⚠️ Bus ${bus.id} missing last_order property, setting to 0`);
+            // Update Map Marker
+            updateMarker(bus);
+            
+            // Update Sidebar List
+            updateListCard(bus);
+            
+            // Update Detail Panel (if open)
+            if (selectedBusId === bus.id) {
+                renderTimeline(bus);
+                updateDetailsHeader(bus);
             }
-            
-            busesData[bus.id] = bus; 
-            updateMapMarker(bus);
-            updateLeftPanel(bus);
-            if (selectedBusId === bus.id) updateRightPanel(bus);
         }
 
-        // --- 5. Map Markers ---
-        function updateMapMarker(bus) {
-            const { id, name, lat, lng, traffic, at_stop, current_stop } = bus;
-            let color = traffic === 'heavy' ? '#ef4444' : '#3b82f6';
-            
-            // If at stop, use purple color
-            if (at_stop) {
-                color = '#7c3aed';
-            }
+        function removeBus(id) {
+            if (markers[id]) { map.removeLayer(markers[id]); delete markers[id]; }
+            const card = document.getElementById(`card-${id}`);
+            if (card) card.remove();
+            if (selectedBusId === id) closeDetails();
+            delete busesData[id];
+        }
+
+        // --- MAP MARKER LOGIC ---
+        function updateMarker(bus) {
+            let color = '#3b82f6'; // Blue
+            if (bus.at_stop) color = '#7c3aed'; // Purple
 
             const iconHtml = `
-                <div style="position:relative; width:40px; height:40px; display:flex; justify-content:center; align-items:center;">
-                    <div class="pin-pulse" style="background:${color}40;"></div>
-                    <div class="custom-pin" style="background:${color};">
-                        <i class="fas fa-bus" style="font-size:14px;"></i>
-                    </div>
+                <div class="pro-marker" style="width:40px; height:40px; background:${color}; position:relative;">
+                    <div class="marker-arrow" style="border-bottom-color:${color};"></div>
+                    <i class="fas fa-bus"></i>
                 </div>
             `;
             const icon = L.divIcon({ html: iconHtml, className: '', iconSize: [40, 40], iconAnchor: [20, 20] });
 
-            if (markers[id]) {
-                markers[id].setLatLng([lat, lng]).setIcon(icon);
-                // Update popup
-                markers[id].bindPopup(`
-                    <b>${name}</b><br>
-                    Speed: ${bus.speed.toFixed(1)} km/h<br>
-                    Status: ${bus.at_stop ? 'At Stop' : 'Moving'}<br>
-                    ${bus.current_stop ? `Current Stop: ${bus.current_stop}` : ''}
-                `);
+            if (markers[bus.id]) {
+                markers[bus.id].setLatLng([bus.lat, bus.lng]).setIcon(icon);
             } else {
-                const marker = L.marker([lat, lng], { icon: icon }).addTo(map);
-                marker.bindPopup(`
-                    <b>${name}</b><br>
-                    Speed: ${bus.speed.toFixed(1)} km/h<br>
-                    Status: ${bus.at_stop ? 'At Stop' : 'Moving'}<br>
-                    ${bus.current_stop ? `Current Stop: ${bus.current_stop}` : ''}
-                `);
-                marker.on('click', () => selectBus(id)); 
-                markers[id] = marker;
+                const marker = L.marker([bus.lat, bus.lng], { icon: icon }).addTo(map);
+                marker.on('click', () => selectBus(bus.id));
+                markers[bus.id] = marker;
             }
         }
 
-        // --- 6. Left Panel ---
-        function updateLeftPanel(bus) {
-            const container = document.getElementById('bus-list-container');
-            let item = document.getElementById(`list-item-${bus.id}`);
+        // --- SIDEBAR LIST CARD LOGIC ---
+        function updateListCard(bus) {
+            const container = document.getElementById('bus-list-content');
+            let card = document.getElementById(`card-${bus.id}`);
 
-            let badgeClass = 'bg-green', badgeText = 'MOVING';
-            if (bus.at_stop) { 
-                badgeClass = 'bg-purple'; 
-                badgeText = 'AT STOP'; 
-            }
-            else if (bus.speed < 1) { 
-                badgeClass = 'bg-red'; 
-                badgeText = 'STOPPED'; 
-            }
+            // Determine badge style
+            let badgeClass = 'badge-trip';
+            let badgeText = 'ON TRIP';
+            if (bus.trip_status === 'READY') { badgeClass = 'badge-ready'; badgeText = 'READY'; }
+            else if (bus.at_stop) { badgeClass = 'badge-stop'; badgeText = 'AT STOP'; }
 
             const html = `
-                <div class="bus-info">
-                    <h4>${bus.name}</h4>
-                    <p>${bus.origin || '?'} <i class="fas fa-arrow-right" style="font-size:10px;"></i> ${bus.destination || '?'}</p>
-                    ${bus.current_stop ? `<small style="color:#7c3aed;"><i class="fas fa-map-marker-alt"></i> ${bus.current_stop}</small>` : ''}
+                <div class="card-header">
+                    <div class="bus-name">${bus.name}</div>
+                    <div class="badge ${badgeClass}">${badgeText}</div>
                 </div>
-                <div class="mini-badge ${badgeClass}">${badgeText}</div>
+                <div class="bus-meta">
+                    <div class="meta-item"><i class="fas fa-route text-gray-400"></i> ${bus.route}</div>
+                    <div class="meta-item"><i class="fas fa-tachometer-alt text-gray-400"></i> ${Math.round(bus.speed)} km/h</div>
+                </div>
+                ${bus.current_stop ? `<div class="text-xs text-indigo-600 font-semibold mt-2"><i class="fas fa-map-marker-alt"></i> ${bus.current_stop}</div>` : ''}
             `;
 
-            if (item) {
-                item.innerHTML = html;
+            if (card) {
+                card.innerHTML = html;
             } else {
-                item = document.createElement('div');
-                item.id = `list-item-${bus.id}`;
-                item.className = 'bus-item';
-                item.innerHTML = html;
-                item.onclick = () => selectBus(bus.id); 
-                container.appendChild(item);
+                card = document.createElement('div');
+                card.id = `card-${bus.id}`;
+                card.className = 'bus-card';
+                card.innerHTML = html;
+                card.onclick = () => selectBus(bus.id);
+                container.appendChild(card);
             }
         }
 
-        // --- 7. Right Panel ---
+        // --- SELECTION LOGIC ---
         function selectBus(id) {
-            console.log("🎯 Selecting bus:", id);
             selectedBusId = id;
             const bus = busesData[id];
-            if (!bus) {
-                console.error("Bus not found:", id);
-                return;
-            }
-
-            // Update UI
-            document.querySelectorAll('.bus-item').forEach(el => el.classList.remove('selected'));
-            const listItem = document.getElementById(`list-item-${id}`);
-            if (listItem) listItem.classList.add('selected');
-
-            // Center map on bus
-            map.setView([bus.lat, bus.lng], 16);
             
-            // Show right panel
-            document.getElementById('right-panel').classList.add('active');
-            
-            // Update panel with bus data
-            updateRightPanel(bus);
+            // Highlight card
+            document.querySelectorAll('.bus-card').forEach(c => c.classList.remove('active'));
+            const card = document.getElementById(`card-${id}`);
+            if(card) card.classList.add('active');
+
+            // Pan Map
+            map.flyTo([bus.lat, bus.lng], 15, { duration: 1.2 });
+
+            // Show Panel
+            document.getElementById('details-panel').classList.add('open');
+            updateDetailsHeader(bus);
+            renderTimeline(bus);
         }
 
-        function closeRightPanel() {
-            document.getElementById('right-panel').classList.remove('active');
+        function closeDetails() {
+            document.getElementById('details-panel').classList.remove('open');
+            document.querySelectorAll('.bus-card').forEach(c => c.classList.remove('active'));
             selectedBusId = null;
-            document.querySelectorAll('.bus-item').forEach(el => el.classList.remove('selected'));
-            map.setView([23.8103, 90.4125], 13);
+            map.flyTo([23.8103, 90.4125], 13, { duration: 1.2 });
         }
 
-        function updateRightPanel(bus) {
-            console.log("📊 Updating right panel for bus:", bus.id, bus.name, "at_stop:", bus.at_stop, "last_order:", bus.last_order);
-            
-            // Basic info
-            document.getElementById('d-bus-name').textContent = bus.name;
-            document.getElementById('d-route-name').textContent = bus.route;
-            document.getElementById('d-start').textContent = bus.origin || 'Depot';
-            document.getElementById('d-end').textContent = bus.destination || 'City';
-            document.getElementById('d-speed').textContent = bus.speed.toFixed(1);
-            
-            // Current stop info
-            const currentStopDiv = document.getElementById('d-current-stop');
-            const currentStopName = document.getElementById('d-current-stop-name');
-            
-            if (bus.current_stop && bus.at_stop) {
-                currentStopName.textContent = bus.current_stop;
-                currentStopDiv.style.display = 'flex';
-            } else {
-                currentStopDiv.style.display = 'none';
-            }
-            
-            // Status badge
-            const badge = document.getElementById('d-status-badge');
-            if (bus.at_stop) { 
-                badge.className = 'mini-badge bg-purple'; 
-                badge.textContent = 'AT STATION'; 
-            }
-            else if (bus.speed > 1) { 
-                badge.className = 'mini-badge bg-green'; 
-                badge.textContent = 'MOVING'; 
-            }
-            else { 
-                badge.className = 'mini-badge bg-red'; 
-                badge.textContent = 'STOPPED'; 
-            }
+        // --- HEADER UPDATE ---
+        function updateDetailsHeader(bus) {
+            document.getElementById('d-name').innerText = bus.name;
+            document.getElementById('d-route').innerHTML = `<span>${bus.origin || 'Start'}</span> <i class="fas fa-arrow-right text-xs opacity-50"></i> <span>${bus.destination || 'End'}</span>`;
+            document.getElementById('d-speed').innerText = bus.speed.toFixed(1);
+            document.getElementById('d-status').innerText = bus.at_stop ? 'AT STATION' : (bus.trip_status === 'READY' ? 'READY TO DEPART' : 'EN ROUTE');
+        }
 
-            // TIMELINE - FIXED LOGIC
+        // --- PROFESSIONAL TIMELINE RENDERER ---
+        function renderTimeline(bus) {
+            const container = document.getElementById('timeline-root');
             const lastOrder = parseInt(bus.last_order) || 0;
             const direction = bus.direction_status;
-            const atStop = bus.at_stop || false;
-            const currentStop = bus.current_stop || null;
             
-            console.log("📈 Timeline params:", { lastOrder, direction, atStop, currentStop });
-            
+            // 1. Filter & Sort Stops
             let routeStops = globalStops.filter(s => s.route === bus.route);
-            console.log("📍 Route stops:", routeStops.length, "for route:", bus.route);
+            if(direction === "CITY_TO_UNI") routeStops.sort((a, b) => b.order - a.order);
+            else routeStops.sort((a, b) => a.order - b.order);
 
-            if (direction === "CITY_TO_UNI") {
-                routeStops.sort((a, b) => b.order - a.order); // High to low
-            } else {
-                routeStops.sort((a, b) => a.order - b.order); // Low to high
-            }
-
-            const timelineContainer = document.getElementById('d-timeline');
-            
             if (routeStops.length === 0) {
-                timelineContainer.innerHTML = `<div style="text-align:center; color:#94a3b8; padding: 20px;">No stops available for this route</div>`;
+                container.innerHTML = '<div class="text-center text-gray-400">Route path unavailable</div>';
                 return;
             }
 
-            let timelineHtml = `<div class="timeline-container">`;
+            let html = '';
             
             routeStops.forEach((stop, index) => {
-                let status = '';
                 const stopOrder = parseInt(stop.order);
+                let stateClass = 'pending'; // Default: Future
                 
-                console.log(`   Stop: ${stop.name} (Order: ${stopOrder}), Current: ${lastOrder}, Direction: ${direction}`);
-                
-                // Check if this is the current stop
-                const isCurrentStop = (currentStop && stop.name === currentStop);
-                
+                // Logic for State
                 if (direction === "CITY_TO_UNI") {
-                    // CITY_TO_UNI: High order (999) to low order (0)
-                    if (stopOrder > lastOrder) {
-                        status = 'passed';
-                    } else if (stopOrder === lastOrder) {
-                        status = atStop && isCurrentStop ? 'arrived' : 'active';
-                    } else if (stopOrder === lastOrder - 1) {
-                        status = 'upcoming';
-                    }
+                    if (stopOrder > lastOrder) stateClass = 'completed';
+                    else if (stopOrder === lastOrder) stateClass = 'current';
                 } else {
-                    // UNI_TO_CITY: Low order (0) to high order (999)
-                    if (stopOrder < lastOrder) {
-                        status = 'passed';
-                    } else if (stopOrder === lastOrder) {
-                        status = atStop && isCurrentStop ? 'arrived' : 'active';
-                    } else if (stopOrder === lastOrder + 1) {
-                        status = 'upcoming';
-                    }
-                }
-                
-                // Special handling for start/end
-                if (index === 0 && status === '') {
-                    if (direction === "CITY_TO_UNI" && lastOrder === 999) {
-                        status = 'active';
-                    } else if (direction === "UNI_TO_CITY" && lastOrder === 0) {
-                        status = 'active';
-                    }
+                    if (stopOrder < lastOrder) stateClass = 'completed';
+                    else if (stopOrder === lastOrder) stateClass = 'current';
                 }
 
-                console.log(`   Status for ${stop.name}: ${status}`);
-                
-                timelineHtml += `
-                    <div class="timeline-stop ${status}">
-                        <div class="stop-dot"></div>
-                        <div class="stop-name">${stop.name}</div>
-                        ${stopOrder === lastOrder ? '<small style="color:#7c3aed; font-weight:600;">Current</small>' : ''}
+                // Is this the "Next" stop? (Approaching)
+                if (stateClass === 'pending' && index > 0) {
+                    // Previous one was current or completed?
+                    // This logic is simplified; usually handled by strict comparison
+                }
+
+                html += `
+                    <div class="timeline-step ${stateClass}">
+                        <div class="step-indicator"></div>
+                        <div class="step-content">
+                            <div class="step-name">
+                                ${stop.name} 
+                                ${stateClass === 'current' ? '<span class="live-tag">LIVE</span>' : ''}
+                            </div>
+                            <div class="step-meta">
+                                ${stateClass === 'completed' ? 'Passed' : (stateClass === 'current' ? 'Current Location' : 'Upcoming')}
+                            </div>
+                        </div>
                     </div>
                 `;
             });
-            
-            timelineHtml += `</div>`;
-            timelineContainer.innerHTML = timelineHtml;
+
+            container.innerHTML = html;
         }
 
-        // --- 8. Debug Toggle (Optional) ---
-        document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey && e.key === 'd') {
-                debugMode = !debugMode;
-                document.getElementById('debug-panel').style.display = debugMode ? 'block' : 'none';
-                console.log("Debug mode:", debugMode ? "ON" : "OFF");
-            }
-        });
-
-        // --- 9. Initial Load ---
-        // Load initial bus data via API
-        fetch('/api/location/')
+        // Initial Load
+        fetch('/api/update-location/')
             .then(res => res.json())
             .then(data => {
-                if (data.buses && data.buses.length > 0) {
-                    console.log("🚌 Initial bus data loaded:", data.buses.length);
-                    data.buses.forEach(processBusData);
-                }
-            })
-            .catch(err => console.error("Error loading initial bus data:", err));
+                if(data.status === 'success') data.buses.forEach(updateBusState);
+            });
 
     </script>
 </body>
