@@ -79,7 +79,8 @@ class LocationUpdateView(View):
             # A. ক্যাশ চেক
             if cached_data:
                 should_include = True
-                last_update_ts = now.timestamp()
+                last_update_ts = cached_data.get('last_seen', now.timestamp())
+                # last_update_ts = now.timestamp()
             else:
                 # B. ডাটাবেস চেক
                 last_loc = BusLocation.objects.filter(bus=bus).order_by('-timestamp').first()
