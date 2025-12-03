@@ -52,8 +52,8 @@ for i in range(5):
 # Step 3: Leaving Terminal (Should trigger ON_TRIP)
 print("\n3️⃣  Leaving Terminal (Speeding up)...")
 # Move slightly away
-send_data(TERMINAL_LAT + 0.0005, TERMINAL_LNG + 0.0005, 10.0, "🚀 Departure started")
+send_data(TERMINAL_LAT + 0.0005, TERMINAL_LNG + 0.0005, 0.0, "🚀 Departure started")
 time.sleep(2)
-send_data(TERMINAL_LAT + 0.0010, TERMINAL_LNG + 0.0010, 25.0, "🚀 On Main Road")
+send_data(TERMINAL_LAT + 0.0010, TERMINAL_LNG + 0.0010, 0.0, "🚀 On Main Road")
 
 print("\n✅ Test Finished! Check Dashboard for Yellow to Green transition.")
