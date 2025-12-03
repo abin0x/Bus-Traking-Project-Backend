@@ -380,7 +380,7 @@
             const card = document.getElementById(`card-${id}`);
             if(card) card.classList.add('active');
 
-            map.flyTo([bus.lat, bus.lng], 15, { duration: 1.2 });
+            map.flyTo([bus.lat, bus.lng], 15, { duration: 1.2 }); // 1
             document.getElementById('details-panel').classList.add('open');
             updateDetailsHeader(bus);
             renderTimeline(bus);
