@@ -337,3 +337,5 @@ def get_stops(request):
             "route": stop.route.name
         })
     return JsonResponse({'stops': data}, safe=False)
+
+# this is all most okay 
