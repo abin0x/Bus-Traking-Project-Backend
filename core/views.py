@@ -361,16 +361,6 @@ def get_stops(request):
 
 
 
-
-
-
-
-
-
-
-
-
-
 # ----------------------------------- Bus Schedule views Below-------------------  
 class BusScheduleViewSet(viewsets.ModelViewSet):
     

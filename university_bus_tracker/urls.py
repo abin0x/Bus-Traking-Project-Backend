@@ -9,4 +9,5 @@ urlpatterns = [
 
     # ২. আমাদের অ্যাপের সব URL এখানে ইনক্লুড করা হলো
     path('', include('core.urls')),
+    path('api/auth/', include('accounts.urls')),
 ]
