@@ -78,3 +78,5 @@ class CustomUserAdmin(UserAdmin):
         )
     
     verification_status.short_description = 'Status' # কলামের নাম
+
+
