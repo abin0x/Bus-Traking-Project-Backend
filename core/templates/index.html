@@ -17,95 +17,181 @@
         body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; overflow: hidden; }
         #map-container { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 0; }
 
-        /* Sidebar & Cards */
-        .sidebar { position: absolute; top: 20px; bottom: 20px; left: 20px; width: 380px; background: var(--surface); border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); display: flex; flex-direction: column; z-index: 1000; border: 1px solid var(--border); transition: transform 0.3s ease; }
-        .sidebar-header { padding: 20px 24px; border-bottom: 1px solid var(--border); background: #f8fafc; }
-        .brand { font-size: 1.25rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 10px; }
-        .brand-icon { width: 32px; height: 32px; background: var(--primary); color: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+        /* --- NAVBAR --- */
+        .navbar {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px);
+            padding: 10px 20px; border-radius: 50px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            z-index: 2000; display: flex; gap: 15px; border: 1px solid rgba(255,255,255,0.5);
+        }
+        .nav-btn {
+            background: transparent; border: none; font-size: 0.9rem; font-weight: 600;
+            color: var(--text-main); cursor: pointer; padding: 8px 16px; border-radius: 20px;
+            transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+        }
+        .nav-btn:hover { background: #f1f5f9; color: var(--accent); }
+        .nav-btn.active { background: var(--accent); color: white; box-shadow: 0 2px 10px rgba(59, 130, 246, 0.3); }
+
+        /* --- SIDEBAR --- */
+        .sidebar { position: absolute; top: 80px; bottom: 20px; left: 20px; width: 360px; background: var(--surface); border-radius: 16px; box-shadow: 0 10px 30px -10px rgba(0,0,0,0.1); display: flex; flex-direction: column; z-index: 1000; border: 1px solid var(--border); transition: transform 0.3s ease; }
+        .sidebar-header { padding: 20px; border-bottom: 1px solid var(--border); background: #f8fafc; border-radius: 16px 16px 0 0; }
+        .brand { font-size: 1.1rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 10px; }
         
         .bus-list { flex: 1; overflow-y: auto; padding: 16px; }
-        .bus-card { background: white; border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden; }
-        .bus-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
-        .bus-card.active { border-color: var(--accent); background: #eff6ff; border-left: 4px solid var(--accent); }
+        .bus-card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        .bus-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 15px -3px rgba(0,0,0,0.05); }
+        .bus-card.active { border-color: var(--accent); background: #f0f9ff; border-left: 4px solid var(--accent); }
         
-        /* GHOST MODE STYLES (New Logic) */
         .bus-card.offline { opacity: 0.6; background: #f8fafc; border-left: 4px solid #94a3b8; filter: grayscale(100%); }
         .bus-card.offline .badge { background: #e2e8f0 !important; color: #64748b !important; }
         
-        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .bus-name { font-weight: 700; color: var(--text-main); font-size: 1rem; }
-        .badge { font-size: 0.7rem; font-weight: 600; padding: 4px 10px; border-radius: 99px; text-transform: uppercase; }
+        .badge { font-size: 0.65rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px; }
         .badge-trip { background: #dcfce7; color: #166534; }
         .badge-ready { background: #fef9c3; color: #854d0e; }
         .badge-stop { background: #f3e8ff; color: #6b21a8; }
-        .bus-meta { display: flex; align-items: center; gap: 16px; color: var(--text-sub); font-size: 0.85rem; margin-top: 8px; }
 
-        /* Details Panel */
-        .details-panel { position: absolute; top: 20px; right: 20px; bottom: 20px; width: 400px; background: var(--surface); border-radius: 12px; box-shadow: -10px 0 25px -5px rgba(0,0,0,0.1); z-index: 1001; transform: translateX(120%); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); display: flex; flex-direction: column; border: 1px solid var(--border); }
+        /* --- RIGHT PANEL (UPDATED STYLE) --- */
+        .details-panel { position: absolute; top: 20px; right: 20px; bottom: 20px; width: 380px; background: var(--surface); border-radius: 16px; box-shadow: -5px 0 30px rgba(0,0,0,0.1); z-index: 1001; transform: translateX(120%); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); display: flex; flex-direction: column; border: 1px solid var(--border); overflow: hidden; }
         .details-panel.open { transform: translateX(0); }
-        .details-hero { background: var(--primary); color: white; padding: 24px; border-radius: 12px 12px 0 0; position: relative; }
-        .close-btn { position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.1); border: none; color: white; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .stat-box { background: rgba(255,255,255,0.1); padding: 12px; border-radius: 8px; backdrop-filter: blur(4px); }
-        .stat-value { font-size: 1.1rem; font-weight: 700; margin-top: 4px; }
+        
+        .details-header { background: var(--primary); color: white; padding: 24px; position: relative; }
+        .close-btn { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.1); border: none; color: white; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+        .close-btn:hover { background: rgba(255,255,255,0.2); }
 
-        /* Markers */
-        .pro-marker { background: var(--primary); border: 2px solid white; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: flex; justify-content: center; align-items: center; color: white; transition: background 0.3s, filter 0.3s; }
-        .pro-marker.offline-marker { background: #94a3b8 !important; border-color: #cbd5e1; filter: grayscale(100%); }
-        .marker-arrow { width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 8px solid white; position: absolute; top: -12px; }
+        .timeline-container { padding: 20px; overflow-y: auto; flex: 1; background: #fdfdfd; }
+        .timeline-step { position: relative; padding-left: 30px; margin-bottom: 20px; }
+        .timeline-line { position: absolute; left: 9px; top: 5px; bottom: -25px; width: 2px; background: #e2e8f0; }
+        .timeline-step:last-child .timeline-line { display: none; }
+        
+        .step-dot { position: absolute; left: 0; top: 0; width: 20px; height: 20px; border-radius: 50%; background: white; border: 3px solid #cbd5e1; z-index: 2; transition: all 0.3s; }
+        .timeline-step.completed .step-dot { background: var(--text-sub); border-color: var(--text-sub); }
+        .timeline-step.current .step-dot { background: var(--accent); border-color: white; box-shadow: 0 0 0 3px var(--accent); }
+        
+        .step-content h4 { font-size: 0.9rem; font-weight: 600; color: var(--text-main); margin: 0; }
+        .step-content p { font-size: 0.75rem; color: var(--text-sub); margin: 2px 0 0 0; }
+        .timeline-step.completed h4 { text-decoration: line-through; color: #94a3b8; }
+
+        /* --- SCHEDULE MODAL --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); z-index: 3000; display: none; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s; }
+        .modal-overlay.active { display: flex; opacity: 1; }
+        
+        .schedule-box { background: white; width: 90%; max-width: 800px; max-height: 85vh; border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.2); display: flex; flex-direction: column; overflow: hidden; transform: translateY(20px); transition: transform 0.3s; }
+        .modal-overlay.active .schedule-box { transform: translateY(0); }
+        
+        .schedule-header { padding: 20px 30px; background: #f8fafc; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .schedule-body { padding: 30px; overflow-y: auto; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 12px; font-size: 0.8rem; text-transform: uppercase; color: var(--text-sub); border-bottom: 2px solid var(--border); }
+        td { padding: 16px 12px; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; color: var(--text-main); }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #f8fafc; }
 
         @media (max-width: 768px) {
-            .sidebar { width: 100%; top: auto; bottom: 0; left: 0; right: 0; height: 45vh; border-radius: 20px 20px 0 0; }
-            .details-panel { width: 100%; top: auto; bottom: 0; left: 0; right: 0; height: 80vh; border-radius: 20px 20px 0 0; transform: translateY(110%); }
+            .navbar { width: 90%; justify-content: center; top: 15px; }
+            .sidebar { top: auto; bottom: 0; left: 0; right: 0; width: 100%; height: 40vh; border-radius: 20px 20px 0 0; }
+            .details-panel { width: 100%; height: 80vh; bottom: 0; top: auto; right: 0; left: 0; transform: translateY(110%); border-radius: 20px 20px 0 0; }
             .details-panel.open { transform: translateY(0); }
         }
     </style>
 </head>
 <body>
 
+    <!-- MAP -->
     <div id="map-container"></div>
 
+    <!-- NAVBAR -->
+    <div class="navbar">
+        <button class="nav-btn active"><i class="fas fa-map-marked-alt"></i> Live Map</button>
+        <button class="nav-btn" onclick="openSchedule()"><i class="far fa-calendar-alt"></i> Schedule</button>
+    </div>
+
+    <!-- LEFT SIDEBAR -->
     <div class="sidebar">
         <div class="sidebar-header">
             <div class="brand">
-                <div class="brand-icon"><i class="fas fa-bus-alt"></i></div>
-                <div>FLEET<span style="color:var(--text-sub); font-weight:400;">TRACK</span></div>
+                <i class="fas fa-bus-alt text-blue-600"></i> FLEET<span style="font-weight:400;">TRACK</span>
             </div>
-            <div class="flex items-center gap-2 mt-4 text-xs text-gray-500 font-medium">
+            <div class="flex gap-4 mt-3 text-[10px] uppercase font-bold text-gray-400">
                 <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-green-500"></div> Active</span>
-                <span class="flex items-center gap-1 ml-3"><div class="w-2 h-2 rounded-full bg-yellow-500"></div> Ready</span>
-                <span class="flex items-center gap-1 ml-3"><div class="w-2 h-2 rounded-full bg-gray-400"></div> Signal Lost</span>
+                <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-amber-400"></div> Ready</span>
             </div>
         </div>
         <div class="bus-list" id="bus-list-content">
-            <div class="text-center text-gray-400 mt-10">
+            <div class="flex flex-col items-center justify-center h-full text-gray-400">
                 <i class="fas fa-circle-notch fa-spin mb-2"></i>
-                <p class="text-xs">Connecting to satellite...</p>
+                <span class="text-xs">Connecting...</span>
             </div>
         </div>
     </div>
 
-    <!-- Right Panel -->
+    <!-- RIGHT DETAILS PANEL -->
     <div class="details-panel" id="details-panel">
-        <div class="details-hero">
+        <div class="details-header">
             <button class="close-btn" onclick="closeDetails()"><i class="fas fa-times"></i></button>
-            <h1 class="hero-title" id="d-name">Bus Name</h1>
-            <div class="text-xs opacity-90 mb-4" id="d-departure-time"></div>
-            <div class="stat-grid">
-                <div class="stat-box">
-                    <div class="text-[10px] uppercase opacity-70">Speed</div>
-                    <div class="stat-value"><span id="d-speed">0</span> <span class="text-sm font-normal opacity-70">km/h</span></div>
+            <h2 class="text-2xl font-bold mb-1" id="d-name">Bus Name</h2>
+            <div class="flex items-center gap-2 text-sm opacity-90" id="d-route-info">
+                <span>Start</span> <i class="fas fa-arrow-right text-xs"></i> <span>End</span>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4 mt-6">
+                <div class="bg-white/10 rounded-lg p-3 backdrop-blur-sm">
+                    <div class="text-[10px] uppercase opacity-70 mb-1">Speed</div>
+                    <div class="text-xl font-bold"><span id="d-speed">0</span> <span class="text-sm font-normal">km/h</span></div>
                 </div>
-                <div class="stat-box">
-                    <div class="text-[10px] uppercase opacity-70">Status</div>
-                    <div class="stat-value text-sm" id="d-status">ON TRIP</div>
+                <div class="bg-white/10 rounded-lg p-3 backdrop-blur-sm">
+                    <div class="text-[10px] uppercase opacity-70 mb-1">Status</div>
+                    <div class="text-sm font-bold uppercase tracking-wider" id="d-status">---</div>
                 </div>
             </div>
         </div>
+
         <div class="timeline-container">
-            <div class="text-xs font-bold uppercase text-gray-400 mb-4 border-b pb-2">Live Route</div>
-            <div class="route-timeline" id="timeline-root">
-                <div class="text-center text-gray-400 text-sm py-4">Select a bus to view live route</div>
+            <div class="text-xs font-bold uppercase text-gray-400 mb-6 tracking-widest">Live Route Progress</div>
+            <div id="timeline-root">
+                <!-- Timeline items injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- SCHEDULE MODAL -->
+    <div class="modal-overlay" id="schedule-modal">
+        <div class="schedule-box">
+            <div class="schedule-header">
+                <h2 class="text-xl font-bold text-gray-800"><i class="far fa-clock text-blue-600 mr-2"></i> Bus Schedule</h2>
+                <button onclick="closeSchedule()" class="text-gray-400 hover:text-red-500 text-xl"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <!-- Filters -->
+            <div class="px-8 py-4 bg-gray-50 border-b border-gray-100 flex gap-4">
+                <select id="day-filter" class="px-3 py-2 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="fetchSchedule()">
+                    <option value="">All Days</option>
+                    <option value="SUN_THU">Sun - Thu</option>
+                    <option value="FRI">Friday</option>
+                    <option value="SAT">Saturday</option>
+                </select>
+                <select id="dir-filter" class="px-3 py-2 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="fetchSchedule()">
+                    <option value="">All Routes</option>
+                    <option value="CAMPUS_TO_CITY">Campus → City</option>
+                    <option value="CITY_TO_CAMPUS">City → Campus</option>
+                </select>
+            </div>
+
+            <div class="schedule-body">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Route</th>
+                            <th>Trip Name</th>
+                            <th>Bus No</th>
+                        </tr>
+                    </thead>
+                    <tbody id="schedule-table-body">
+                        <!-- Data injected via JS -->
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -113,10 +199,10 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <script>
-        // --- CONFIG ---
+        // --- MAP INIT ---
         const map = L.map('map-container', { zoomControl: false }).setView([23.8103, 90.4125], 13);
         L.control.zoom({ position: 'topright' }).addTo(map);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap, © CARTO', maxZoom: 20 }).addTo(map);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '© CARTO', maxZoom: 20 }).addTo(map);
 
         // --- STATE ---
         const markers = {};
@@ -132,7 +218,7 @@
                     globalStops = data.stops;
                     data.stops.forEach(stop => {
                         L.circleMarker([stop.lat, stop.lng], {
-                            radius: 3, color: 'transparent', fillColor: '#94a3b8', fillOpacity: 0.5
+                            radius: 4, color: 'transparent', fillColor: '#cbd5e1', fillOpacity: 0.8
                         }).addTo(map);
                     });
                 }
@@ -147,49 +233,29 @@
             const container = document.getElementById('bus-list-content');
             if(container.querySelector('.fa-spin')) container.innerHTML = '';
 
-            // WebSocket data is always LIVE
             if (data.buses) {
-                data.buses.forEach(b => {
-                    b.is_live_socket = true; 
-                    updateBusState(b);
-                });
+                data.buses.forEach(b => { b.is_live = true; updateBusState(b); });
             } else {
-                data.is_live_socket = true;
+                data.is_live = true;
                 updateBusState(data);
             }
         };
 
-        // --- CORE UPDATE FUNCTION ---
+        // --- UPDATE LOGIC ---
         function updateBusState(bus) {
-            
-            // [CRITICAL LOGIC] Time Determination
-            // WebSocket = Now
-            // API (Reload) = Server's last_seen timestamp
-            if (bus.is_live_socket) {
-                bus.client_receive_time = Date.now() / 1000;
-            } else {
-                // If reloading, respect the server's time
-                bus.client_receive_time = bus.last_seen || (Date.now() / 1000);
-            }
+            bus.client_time = bus.is_live ? (Date.now()/1000) : (bus.last_seen || Date.now()/1000);
 
-            // Remove IDLE immediately
             if (bus.trip_status === 'IDLE') {
-                removeBus(bus.id);
-                return;
+                removeBus(bus.id); return;
             }
 
             busesData[bus.id] = bus;
-            
-            // Update UI
             updateMarker(bus);
             updateListCard(bus);
-            
-            // [IMMEDIATE CHECK] Check if data is old right now (for reload case)
             checkGhostMode(bus);
 
             if (selectedBusId === bus.id) {
-                updateDetailsHeader(bus);
-                renderTimeline(bus);
+                updateRightPanel(bus);
             }
         }
 
@@ -201,25 +267,21 @@
             delete busesData[id];
         }
 
-        // --- MARKER ---
         function updateMarker(bus) {
-            let color = '#3b82f6'; 
+            let color = '#3b82f6';
             if (bus.at_stop) color = '#7c3aed';
             if (bus.trip_status === 'READY') color = '#eab308';
 
-            const iconHtml = `
-                <div class="pro-marker" style="width:40px; height:40px; background:${color}; position:relative;">
-                    <div class="marker-arrow" style="border-bottom-color:${color};"></div>
-                    <i class="fas fa-bus"></i>
-                </div>
-            `;
-            const icon = L.divIcon({ html: iconHtml, className: '', iconSize: [40, 40], iconAnchor: [20, 20] });
+            const iconHtml = `<div class="w-8 h-8 rounded-full border-2 border-white shadow-lg flex items-center justify-center text-white text-xs transition-all duration-300" style="background:${color}">
+                <i class="fas fa-bus"></i>
+            </div>`;
+            const icon = L.divIcon({ html: iconHtml, className: 'bg-transparent', iconSize: [32, 32] });
 
             if (markers[bus.id]) {
                 markers[bus.id].setLatLng([bus.lat, bus.lng]).setIcon(icon);
-                
-                // Note: We don't remove offline class here, 
-                // `markBusAsOnline` handles that to avoid flickering
+                // Remove grayscale filter if online
+                const el = markers[bus.id].getElement();
+                if(el) el.style.filter = 'none';
             } else {
                 const marker = L.marker([bus.lat, bus.lng], { icon: icon }).addTo(map);
                 marker.on('click', () => selectBus(bus.id));
@@ -227,31 +289,30 @@
             }
         }
 
-        // --- CARD ---
         function updateListCard(bus) {
             const container = document.getElementById('bus-list-content');
             let card = document.getElementById(`card-${bus.id}`);
 
-            let badgeClass = 'badge-trip';
+            let badgeClass = 'bg-green-100 text-green-700';
             let badgeText = 'ON TRIP';
-            if (bus.trip_status === 'READY') { badgeClass = 'badge-ready'; badgeText = 'READY'; }
-            else if (bus.at_stop) { badgeClass = 'badge-stop'; badgeText = 'AT STOP'; }
+            if (bus.trip_status === 'READY') { badgeClass = 'bg-amber-100 text-amber-700'; badgeText = 'READY'; }
+            else if (bus.at_stop) { badgeClass = 'bg-purple-100 text-purple-700'; badgeText = 'AT STOP'; }
 
-            let departureHtml = '';
+            let depText = '';
             if (bus.trip_status === 'READY' && bus.next_departure) {
-                departureHtml = `<div class="text-[11px] font-bold text-amber-600 mt-1"><i class="far fa-clock"></i> ${bus.next_departure}</div>`;
+                depText = `<div class="mt-2 text-xs font-semibold text-amber-600 flex items-center gap-1"><i class="far fa-clock"></i> ${bus.next_departure}</div>`;
             }
 
             const html = `
-                <div class="card-header">
-                    <div class="bus-name">${bus.name}</div>
-                    <div class="badge ${badgeClass}">${badgeText}</div>
+                <div class="flex justify-between items-start mb-2">
+                    <h3 class="font-bold text-gray-800">${bus.name}</h3>
+                    <span class="text-[10px] font-bold px-2 py-1 rounded-full ${badgeClass}">${badgeText}</span>
                 </div>
-                ${departureHtml}
-                <div class="bus-meta">
-                    <div class="meta-item"><i class="fas fa-route text-gray-400"></i> ${bus.route}</div>
-                    <div class="meta-item"><i class="fas fa-tachometer-alt text-gray-400"></i> ${Math.round(bus.speed)} km/h</div>
+                <div class="flex items-center gap-4 text-xs text-gray-500">
+                    <span class="flex items-center gap-1"><i class="fas fa-route"></i> ${bus.route}</span>
+                    <span class="flex items-center gap-1"><i class="fas fa-tachometer-alt"></i> ${Math.round(bus.speed)} km/h</span>
                 </div>
+                ${depText}
             `;
 
             if (card) {
@@ -266,175 +327,135 @@
             }
         }
 
-        // --- GHOST MODE & TIMEOUT LOGIC ---
-        function checkGhostMode(bus) {
-            const now = Date.now() / 1000;
-            const timeDiff = now - bus.client_receive_time;
-            const SIGNAL_LOST_THRESHOLD = 60; // 1 Min
-
-            if (timeDiff > SIGNAL_LOST_THRESHOLD) {
-                markBusAsOffline(bus);
-            } else {
-                markBusAsOnline(bus);
-            }
-        }
-
+        // --- GHOST MODE ---
         setInterval(() => {
             const now = Date.now() / 1000;
-            const SIGNAL_LOST_TIME = 60;      // 1 Min -> Grey
-            const STAND_REMOVE_TIME = 120;    // 2 Min -> Remove (If Stand)
-            const TRIP_REMOVE_TIME = 1200;    // 20 Min -> Remove (If Trip)
+            Object.keys(busesData).forEach(id => {
+                const bus = busesData[id];
+                const diff = now - bus.client_time;
+                const isStand = (bus.trip_status === 'READY' || bus.speed < 1);
+                const limit = isStand ? 120 : 1200;
 
-            Object.keys(busesData).forEach(busId => {
-                const bus = busesData[busId];
-                const lastReceived = bus.client_receive_time || now;
-                const timeDiff = now - lastReceived;
-
-                const isAtStand = (bus.trip_status === 'READY' || bus.trip_status === 'IDLE' || bus.speed < 1);
-                const removeThreshold = isAtStand ? STAND_REMOVE_TIME : TRIP_REMOVE_TIME;
-
-                // 1. Hard Remove
-                if (timeDiff > removeThreshold) {
-                    console.log(`❌ Removing bus ${bus.name} (Timeout: ${Math.round(timeDiff)}s)`);
-                    removeBus(busId);
-                    return;
-                }
-
-                // 2. Check Signal Status
-                if (timeDiff > SIGNAL_LOST_TIME) {
-                    markBusAsOffline(bus);
-                } else {
-                    markBusAsOnline(bus);
-                }
+                if (diff > limit) removeBus(id);
+                else if (diff > 60) markOffline(id);
+                else markOnline(id);
             });
-        }, 2000); // Check every 2s
+        }, 2000);
 
-        function markBusAsOffline(bus) {
-            const card = document.getElementById(`card-${bus.id}`);
-            if (card && !card.classList.contains('offline')) {
-                card.classList.add('offline');
-                const badge = card.querySelector('.badge');
-                if(badge) {
-                    badge.innerText = 'SIGNAL LOST';
-                    badge.style.background = '#e2e8f0'; 
-                    badge.style.color = '#64748b';
-                }
-            }
-            if (markers[bus.id]) {
-                const el = markers[bus.id].getElement();
-                if (el) {
-                    const inner = el.querySelector('.pro-marker');
-                    if (inner) inner.classList.add('offline-marker');
-                }
-            }
+        function checkGhostMode(bus) {
+            const diff = (Date.now()/1000) - bus.client_time;
+            if (diff > 60) markOffline(bus.id);
+            else markOnline(bus.id);
         }
 
-        function markBusAsOnline(bus) {
-            const card = document.getElementById(`card-${bus.id}`);
-            if (card && card.classList.contains('offline')) {
-                card.classList.remove('offline');
-                // Restore badge text (Trigger re-render)
-                updateListCard(bus);
-            }
-            if (markers[bus.id]) {
-                const el = markers[bus.id].getElement();
-                if (el) {
-                    const inner = el.querySelector('.pro-marker');
-                    if (inner) inner.classList.remove('offline-marker');
-                }
-            }
+        function markOffline(id) {
+            const card = document.getElementById(`card-${id}`);
+            if (card) card.classList.add('offline');
+            if (markers[id] && markers[id].getElement()) markers[id].getElement().style.filter = 'grayscale(100%)';
+        }
+
+        function markOnline(id) {
+            const card = document.getElementById(`card-${id}`);
+            if (card) card.classList.remove('offline');
+            if (markers[id] && markers[id].getElement()) markers[id].getElement().style.filter = 'none';
         }
 
         // --- DETAILS PANEL ---
         function selectBus(id) {
             selectedBusId = id;
-            const bus = busesData[id];
             document.querySelectorAll('.bus-card').forEach(c => c.classList.remove('active'));
             const card = document.getElementById(`card-${id}`);
             if(card) card.classList.add('active');
-            map.flyTo([bus.lat, bus.lng], 15, { duration: 1.2 });
+            
             document.getElementById('details-panel').classList.add('open');
-            updateDetailsHeader(bus);
-            renderTimeline(bus);
+            map.flyTo([busesData[id].lat, busesData[id].lng], 15, {duration: 1.5});
+            updateRightPanel(busesData[id]);
         }
 
         function closeDetails() {
             document.getElementById('details-panel').classList.remove('open');
             selectedBusId = null;
-            map.flyTo([23.8103, 90.4125], 13, { duration: 1.2 });
+            document.querySelectorAll('.bus-card').forEach(c => c.classList.remove('active'));
+            map.flyTo([23.8103, 90.4125], 13);
         }
 
-        function updateDetailsHeader(bus) {
+        function updateRightPanel(bus) {
             document.getElementById('d-name').innerText = bus.name;
-            const timeEl = document.getElementById('d-departure-time');
-            if(bus.trip_status === 'READY' && bus.next_departure) {
-                timeEl.innerHTML = `<i class="far fa-clock text-amber-500"></i> <span class="text-amber-500 font-bold">${bus.next_departure}</span>`;
-            } else {
-                timeEl.innerHTML = `<span>${bus.origin || 'Start'}</span> <i class="fas fa-arrow-right text-[10px] opacity-50"></i> <span>${bus.destination || 'End'}</span>`;
-            }
+            document.getElementById('d-route-info').innerHTML = `<span>${bus.origin}</span> <i class="fas fa-arrow-right text-xs text-gray-400"></i> <span>${bus.destination}</span>`;
             document.getElementById('d-speed').innerText = bus.speed.toFixed(1);
-            let statusText = bus.trip_status;
-            if(bus.at_stop) statusText = 'AT STATION';
-            if(bus.trip_status === 'READY') statusText = 'READY';
-            document.getElementById('d-status').innerText = statusText;
-        }
-
-        // --- TIMELINE RENDERER ---
-        function renderTimeline(bus) {
-            const container = document.getElementById('timeline-root');
-            const lastOrder = parseInt(bus.last_order) || 0;
-            const direction = bus.direction_status;
             
-            let routeStops = globalStops.filter(s => s.route === bus.route);
-            if(direction === "CITY_TO_UNI") routeStops.sort((a, b) => b.order - a.order);
-            else routeStops.sort((a, b) => a.order - b.order);
+            let st = bus.trip_status === 'READY' ? 'READY TO DEPART' : 'ON TRIP';
+            if (bus.at_stop) st = 'AT STATION';
+            document.getElementById('d-status').innerText = st;
 
-            if (routeStops.length === 0) {
-                container.innerHTML = '<div class="text-center text-gray-400">Route path unavailable</div>';
-                return;
-            }
+            // Render Timeline
+            const container = document.getElementById('timeline-root');
+            const stops = globalStops.filter(s => s.route === bus.route);
+            const dir = bus.direction_status;
+            
+            if(dir === "CITY_TO_UNI") stops.sort((a,b) => b.order - a.order);
+            else stops.sort((a,b) => a.order - b.order);
 
             let html = '';
-            routeStops.forEach((stop, index) => {
-                const stopOrder = parseInt(stop.order);
-                let stateClass = 'pending';
-                if (direction === "CITY_TO_UNI") {
-                    if (stopOrder > lastOrder) stateClass = 'completed';
-                    else if (stopOrder === lastOrder) stateClass = 'current';
-                } else {
-                    if (stopOrder < lastOrder) stateClass = 'completed';
-                    else if (stopOrder === lastOrder) stateClass = 'current';
-                }
+            stops.forEach(stop => {
+                let status = 'pending';
+                const order = stop.order;
+                const last = bus.last_order;
+
+                if ((dir === "CITY_TO_UNI" && order > last) || (dir !== "CITY_TO_UNI" && order < last)) status = 'completed';
+                else if (order === last) status = 'current';
 
                 html += `
-                    <div class="timeline-step ${stateClass}">
-                        <div class="step-indicator"></div>
+                    <div class="timeline-step ${status}">
+                        <div class="timeline-line"></div>
+                        <div class="step-dot"></div>
                         <div class="step-content">
-                            <div class="step-name">
-                                ${stop.name} 
-                                ${stateClass === 'current' ? '<span class="text-[10px] bg-blue-500 text-white px-1 rounded ml-1">LIVE</span>' : ''}
-                            </div>
-                            <div class="step-meta">
-                                ${stateClass === 'completed' ? 'Passed' : (stateClass === 'current' ? 'Current Location' : 'Upcoming')}
-                            </div>
+                            <h4 class="${status === 'current' ? 'text-blue-600' : ''}">${stop.name} ${status === 'current' ? '<span class="text-[10px] bg-blue-600 text-white px-1 rounded ml-1">LIVE</span>' : ''}</h4>
+                            <p>${status === 'completed' ? 'Passed' : (status === 'current' ? 'Current Location' : 'Upcoming')}</p>
                         </div>
                     </div>
                 `;
             });
-            container.innerHTML = html;
+            container.innerHTML = html || '<div class="text-center text-gray-400 py-4">No route info</div>';
         }
 
-        // --- INITIAL LOAD (Fix Reload Issue) ---
-        fetch('/api/update-location/')
-            .then(res => res.json())
-            .then(data => {
-                if(data.status === 'success') {
-                    data.buses.forEach(b => {
-                        b.is_live_socket = false; // Flag for API data
-                        updateBusState(b);
+        // --- SCHEDULE MODAL LOGIC ---
+        function openSchedule() {
+            document.getElementById('schedule-modal').classList.add('active');
+            fetchSchedule();
+        }
+        function closeSchedule() {
+            document.getElementById('schedule-modal').classList.remove('active');
+        }
+
+        function fetchSchedule() {
+            const day = document.getElementById('day-filter').value;
+            const dir = document.getElementById('dir-filter').value;
+            let url = '/api/schedule/?';
+            if(day) url += `day_type=${day}&`;
+            if(dir) url += `direction=${dir}`;
+
+            fetch(url)
+                .then(res => res.json())
+                .then(data => {
+                    const tbody = document.getElementById('schedule-table-body');
+                    tbody.innerHTML = '';
+                    data.forEach(item => {
+                        const row = `<tr>
+                            <td class="font-bold text-blue-600">${item.formatted_time}</td>
+                            <td>${item.direction_label}</td>
+                            <td>${item.trip_name}</td>
+                            <td>${item.bus_number}</td>
+                        </tr>`;
+                        tbody.innerHTML += row;
                     });
-                }
-            });
+                });
+        }
+
+        // Initial Load
+        fetch('/api/update-location/').then(res => res.json()).then(data => {
+            if(data.status === 'success') data.buses.forEach(b => { b.is_live = false; updateBusState(b); });
+        });
 
     </script>
 </body>

@@ -6,7 +6,7 @@ from .views import LocationUpdateView, get_stops, BusScheduleViewSet
 
 # রাউটার সেটআপ
 router = DefaultRouter()
-router.register(r'api/schedules', BusScheduleViewSet, basename='bus_schedule')
+router.register(r'schedule', BusScheduleViewSet, basename='bus_schedule')
 
 urlpatterns = [
     path('', TemplateView.as_view(template_name='index.html'), name='home'),
@@ -17,5 +17,5 @@ urlpatterns = [
     path('api/bus/<str:bus_id>/', LocationUpdateView.as_view(), name='get_bus_status'),
 
     # Schedule API (Router এর মাধ্যমে)
-    path('', include(router.urls)), 
+    path('api/', include(router.urls)), 
 ]
