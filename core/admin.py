@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Route, BusStop, Bus, BusLocation
+from .models import Route, BusStop, Bus, BusLocation,BusSchedule
 
 admin.site.site_header = "University Bus Admin"
 admin.site.site_title = "Bus Tracking Portal"
@@ -77,3 +77,25 @@ class BusLocationAdmin(admin.ModelAdmin):
     
     def has_add_permission(self, request): return False
     def has_change_permission(self, request, obj=None): return False
+
+
+# ----------------------------- Bus schedule Admin ----------------------------- 
+
+@admin.register(BusSchedule)
+class BusScheduleAdmin(admin.ModelAdmin):
+    list_display = ('trip_name', 'departure_time', 'bus_number', 'direction', 'day_type', 'is_active')
+    list_filter = ('day_type', 'direction', 'trip_name') # সাইডবারে ফিল্টার থাকবে
+    search_fields = ('bus_number', 'trip_name')
+    ordering = ('day_type', 'departure_time')
+    
+    fieldsets = (
+        ('Trip Information', {
+            'fields': ('trip_name', 'bus_number', 'note')
+        }),
+        ('Timing & Route', {
+            'fields': ('departure_time', 'direction', 'day_type')
+        }),
+        ('Status', {
+            'fields': ('is_active',)
+        }),
+    )

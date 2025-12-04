@@ -1,5 +1,7 @@
 import json
 from django.http import JsonResponse
+from django_filters.rest_framework import DjangoFilterBackend
+
 from django.views import View
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -11,6 +13,10 @@ from django.utils import timezone
 from datetime import timedelta
 from .models import Bus, BusLocation, BusStop
 from .utils import parse_sim7600_gps, calculate_distance
+from .serializers import BusScheduleSerializer
+from rest_framework import viewsets
+from .models import BusSchedule
+
 
 # ==========================================
 # HELPER: GET TRIP INFO
@@ -351,3 +357,28 @@ def get_stops(request):
             "route": stop.route.name
         })
     return JsonResponse({'stops': data}, safe=False)
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ----------------------------------- Bus Schedule views Below-------------------  
+class BusScheduleViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for managing bus schedules.
+    Query Parameters example: 
+    /api/schedule/?day_type=SUN_THU&direction=CAMPUS_TO_CITY
+    """
+    queryset = BusSchedule.objects.filter(is_active=True).order_by('departure_time')
+    serializer_class = BusScheduleSerializer
+    filter_backends = [DjangoFilterBackend]
+    # এই ফিল্ডগুলো দিয়ে ফিল্টার করা যাবে
+    filterset_fields = ['day_type', 'direction', 'trip_name']

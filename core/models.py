@@ -65,3 +65,44 @@ class BusStop(models.Model):
 
     def __str__(self):
         return f"{self.order}. {self.name} ({self.route.name})"
+
+
+
+
+
+# ---------------Bus Schedule Model Added Below--------------- 
+from django.db import models
+
+class BusSchedule(models.Model):
+    # দিক নির্বাচন (ক্যাম্পাস থেকে শহর নাকি শহর থেকে ক্যাম্পাস)
+    DIRECTION_CHOICES = [
+        ('CAMPUS_TO_CITY', 'Campus to City'),
+        ('CAMPUS_TO_BRTCDEPOT', 'Campus to BRTC Depot'),
+        ('CAMPUS_TO_DOSHMILE', 'Campus to Doshmile'),
+        ('CITY_TO_CAMPUS', 'City to Campus'),
+    ]
+
+    # কোন বারের শিডিউল (পিডিএফ অনুযায়ী)
+    DAY_TYPE_CHOICES = [
+        ('SUN_THU', 'Sunday to Thursday (Regular)'),
+        ('FRI', 'Friday'),
+        ('SAT', 'Saturday'),
+        ('TUE', 'Tuesday (Special)'),
+    ]
+
+    trip_name = models.CharField(max_length=100) # উদা: ছাত্র-ছাত্রী, শিক্ষক, সাধারণ
+    direction = models.CharField(max_length=20, choices=DIRECTION_CHOICES)
+    day_type = models.CharField(max_length=10, choices=DAY_TYPE_CHOICES, default='SUN_THU')
+    
+    departure_time = models.TimeField() # ছাড়ার সময় (উদা: 08:30:00)
+    bus_number = models.CharField(max_length=100) # উদা: ১৭, ১,২,৩ (কমা দিয়ে একাধিক রাখা যাবে)
+    
+    # অতিরিক্ত তথ্য (যদি লাগে, যেমন: ভায়া বাসস্ট্যান্ড)
+    note = models.CharField(max_length=200, blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['departure_time'] # সময় অনুযায়ী অটো সাজানো থাকবে
+
+    def __str__(self):
+        return f"{self.trip_name} - {self.departure_time} ({self.get_direction_display()})"
