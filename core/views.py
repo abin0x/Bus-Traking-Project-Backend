@@ -383,35 +383,35 @@ class BusScheduleViewSet(viewsets.ModelViewSet):
 # ----------------------------next bus schedule for every 30 min ----------------- 
 class NextBusScheduleView(APIView):
     def get(self, request):
-        # ১. বর্তমান সময়
+        # ১. বাংলাদেশ টাইম অনুযায়ী বর্তমান সময়
         now = timezone.localtime(timezone.now())
         current_time = now.time()
         
-        # ২. আজকের দিন
+        # ২. বার নির্ধারণ
         weekday = now.weekday()
         if weekday == 4: day_type = 'FRI'
         elif weekday == 5: day_type = 'SAT'
         else: day_type = 'SUN_THU'
 
-        # ৩. পরবর্তী সময়টি (Next Slot) খুঁজে বের করা
-        # যেমন: এখন ২:৩৪, পরবর্তী শিডিউল ৩:০০
+        # ৩. পরবর্তী ঠিক একটি সময় (Time Slot) খুঁজে বের করা
+        # যেমন: এখন ২:৩৪, ডেটাবেসে পরবর্তী সময় হয়তো ৩:০০
         next_slot = BusSchedule.objects.filter(
             day_type=day_type,
             departure_time__gte=current_time, # বর্তমান সময়ের পরের সময়
             is_active=True
-        ).order_by('departure_time').first()
+        ).order_by('departure_time').first() # সবার আগেরটা নিলাম
 
         upcoming_buses = []
         next_time_str = ""
 
         if next_slot:
             # ৪. সেই নির্দিষ্ট সময়ের (Target Time) সব বাস খুঁজে বের করা
-            # যেমন: ৩:০০ টার সব বাস
+            # যেমন: ৩:০০ টার সব বাস (এখানে ১টা বা ১০টা বাস থাকতে পারে)
             target_time = next_slot.departure_time
             
             upcoming_buses = BusSchedule.objects.filter(
                 day_type=day_type,
-                departure_time=target_time, # Exact Match
+                departure_time=target_time, # Exact Match with Target Time
                 is_active=True
             )
             next_time_str = target_time.strftime("%I:%M %p")
