@@ -2,7 +2,7 @@ import requests
 import time
 
 URL = "http://127.0.0.1:8000/api/update-location/"
-BUS_ID = "BUS-02"
+BUS_ID = "BUS-01"
 
 # 5 stops with your coordinates
 stops = [
