@@ -26,6 +26,12 @@ SECRET_KEY = 'django-insecure-rq$22(cdakeb)tm3&39^k7fr7^@^sii-6$str1mbg=sop50945
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
+allowed_cross_origins = [
+    "http://localhost:8000",
+    'http://127.0.0.1:5500',
+]
+
+CORS_ALLOWED_ORIGINS = allowed_cross_origins
 
 
 # Application definition
@@ -134,9 +140,11 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+# TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Dhaka'
 
 USE_I18N = True
+USE_L10N = True
 
 USE_TZ = True
 

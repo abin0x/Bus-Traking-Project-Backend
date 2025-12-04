@@ -3,677 +3,1285 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bus Tracking Dashboard</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>BusTracker | Live Bus Tracking & Schedule</title>
+    
+    <!-- Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
     <style>
-        /* [Keep all your existing CSS styles - they're fine] */
+        /* ===== BASE STYLES ===== */
         :root {
-            --primary: #3b82f6;
-            --primary-dark: #2563eb;
-            --secondary: #10b981;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --dark: #1f2937;
-            --light: #f9fafb;
-            --gray: #6b7280;
-            --light-gray: #e5e7eb;
-            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            --transition: all 0.3s ease;
+            --white: #ffffff;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            
+            --blue-500: #3b82f6;
+            --blue-600: #2563eb;
+            --blue-700: #1d4ed8;
+            
+            --green-500: #10b981;
+            --green-600: #059669;
+            
+            --yellow-500: #f59e0b;
+            --yellow-600: #d97706;
+            
+            --red-500: #ef4444;
+            --red-600: #dc2626;
+            
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+            
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            
+            --transition: all 0.2s ease;
         }
-
-        /* [All your CSS styles remain the same] */
-        /* ... */
         
-        /* Add this for debug panel */
-        .debug-panel {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 15px;
-            border-radius: 8px;
-            font-family: monospace;
-            font-size: 12px;
-            z-index: 10000;
-            max-width: 400px;
-            max-height: 300px;
-            overflow-y: auto;
-            display: none;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
         
-        .debug-toggle {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: var(--danger);
-            color: white;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--gray-50);
+            color: var(--gray-800);
+            line-height: 1.5;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        /* ===== LAYOUT ===== */
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        /* ===== SIDEBAR ===== */
+        .sidebar {
+            width: 320px;
+            background: var(--white);
+            border-right: 1px solid var(--gray-200);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--gray-200);
+            background: var(--white);
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+        
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--blue-600);
+            border-radius: var(--radius-md);
             display: flex;
             align-items: center;
             justify-content: center;
+            color: white;
+            font-size: 16px;
+        }
+        
+        .logo-text {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+        
+        .logo-text span {
+            color: var(--blue-600);
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        
+        .stat-item {
+            background: var(--gray-50);
+            border-radius: var(--radius-md);
+            padding: 12px;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+        }
+        
+        .search-container {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+        
+        .search-box {
+            position: relative;
+        }
+        
+        .search-box i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray-400);
+            font-size: 14px;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 10px 12px 10px 36px;
+            border: 1px solid var(--gray-300);
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            transition: var(--transition);
+        }
+        
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--blue-500);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .bus-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 20px 20px;
+        }
+        
+        .list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0 16px;
+        }
+        
+        .list-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-700);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .list-count {
+            font-size: 14px;
+            color: var(--gray-500);
+            background: var(--gray-100);
+            padding: 2px 8px;
+            border-radius: 12px;
+        }
+        
+        .bus-items {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .bus-item {
+            background: var(--white);
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            padding: 16px;
             cursor: pointer;
-            z-index: 10001;
+            transition: var(--transition);
         }
         
-        .api-status {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
+        .bus-item:hover {
+            border-color: var(--blue-300);
+            background: var(--blue-50);
+        }
+        
+        .bus-item.active {
+            border-color: var(--blue-500);
+            background: var(--blue-50);
+        }
+        
+        .bus-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        
+        .bus-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+        
+        .bus-route {
+            font-size: 13px;
+            color: var(--gray-600);
+            margin-top: 2px;
+        }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .status-badge i {
+            font-size: 8px;
+        }
+        
+        .status-on-trip {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--green-600);
+        }
+        
+        .status-ready {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--yellow-600);
+        }
+        
+        .status-idle {
+            background: rgba(107, 114, 128, 0.1);
+            color: var(--gray-600);
+        }
+        
+        .bus-metrics {
+            display: flex;
+            gap: 16px;
+            margin-top: 12px;
+        }
+        
+        .metric {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--gray-600);
+        }
+        
+        .metric i {
+            color: var(--blue-500);
+            font-size: 12px;
+        }
+        
+        .metric-value {
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+        
+        /* ===== MAIN CONTENT ===== */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .top-bar {
+            padding: 16px 24px;
+            background: var(--white);
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .page-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+        
+        .actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--gray-300);
+            background: var(--white);
+            color: var(--gray-700);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: var(--transition);
+        }
+        
+        .btn:hover {
+            background: var(--gray-50);
+            border-color: var(--gray-400);
+        }
+        
+        .btn-primary {
+            background: var(--blue-600);
+            color: white;
+            border-color: var(--blue-600);
+        }
+        
+        .btn-primary:hover {
+            background: var(--blue-700);
+            border-color: var(--blue-700);
+        }
+        
+        .time-display {
+            font-size: 14px;
+            color: var(--gray-600);
+            background: var(--gray-100);
+            padding: 6px 12px;
+            border-radius: var(--radius-md);
+        }
+        
+        .map-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .map-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 1000;
+        }
+        
+        .map-btn {
+            width: 40px;
+            height: 40px;
+            background: var(--white);
+            border: 1px solid var(--gray-300);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray-700);
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .map-btn:hover {
+            background: var(--gray-50);
+            border-color: var(--gray-400);
+        }
+        
+        .bottom-panel {
+            background: var(--white);
+            border-top: 1px solid var(--gray-200);
+            padding: 20px 24px;
+        }
+        
+        .selected-bus-info {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .info-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .info-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+        
+        .bus-progress {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .progress-bar {
+            flex: 1;
+            height: 6px;
+            background: var(--gray-200);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: var(--blue-600);
+            border-radius: 3px;
+            width: 60%;
+        }
+        
+        .progress-stops {
+            font-size: 13px;
+            color: var(--gray-600);
+        }
+        
+        .info-metrics {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+        
+        .info-metric {
+            background: var(--gray-50);
+            border-radius: var(--radius-md);
+            padding: 12px;
+        }
+        
+        .metric-label-small {
+            font-size: 12px;
+            color: var(--gray-500);
+            margin-bottom: 4px;
+        }
+        
+        .metric-value-large {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+        
+        /* ===== SCHEDULE MODAL ===== */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 900px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--gray-500);
+            cursor: pointer;
+            font-size: 20px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-sm);
+            transition: var(--transition);
+        }
+        
+        .modal-close:hover {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+        
+        .modal-filters {
+            padding: 20px 24px;
+            background: var(--gray-50);
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            gap: 12px;
+        }
+        
+        .filter-select {
+            padding: 8px 12px;
+            border: 1px solid var(--gray-300);
+            border-radius: var(--radius-md);
+            background: var(--white);
+            color: var(--gray-700);
+            font-size: 14px;
+            cursor: pointer;
+            min-width: 150px;
+        }
+        
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--blue-500);
+        }
+        
+        .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+        
+        .schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .schedule-table th {
+            text-align: left;
+            padding: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid var(--gray-200);
+        }
+        
+        .schedule-table td {
+            padding: 16px 12px;
+            border-bottom: 1px solid var(--gray-200);
+            font-size: 14px;
+            color: var(--gray-700);
+        }
+        
+        .schedule-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .schedule-table tr:hover td {
+            background: var(--gray-50);
+        }
+        
+        .time-cell {
+            font-weight: 600;
+            color: var(--blue-600);
+        }
+        
+        /* ===== LOADING STATES ===== */
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: var(--gray-400);
+        }
+        
+        .loading-spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--gray-200);
+            border-top-color: var(--blue-600);
             border-radius: 50%;
-            margin-right: 5px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 16px;
         }
         
-        .api-status.online {
-            background-color: var(--secondary);
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
         
-        .api-status.offline {
-            background-color: var(--danger);
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 280px;
+            }
+            
+            .info-metrics {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
+        
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: 300px;
+            }
+            
+            .main-content {
+                flex: 1;
+            }
+            
+            .info-metrics {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* ===== UTILITIES ===== */
+        .hidden {
+            display: none;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .mt-1 { margin-top: 4px; }
+        .mt-2 { margin-top: 8px; }
+        .mt-3 { margin-top: 12px; }
+        .mt-4 { margin-top: 16px; }
+        .mt-6 { margin-top: 24px; }
+        
+        .mb-1 { margin-bottom: 4px; }
+        .mb-2 { margin-bottom: 8px; }
+        .mb-3 { margin-bottom: 12px; }
+        .mb-4 { margin-bottom: 16px; }
     </style>
 </head>
 <body>
-    <!-- [Keep all your existing HTML structure] -->
-    <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <h1><i class="fas fa-bus"></i> Bus Tracking Dashboard</h1>
-            <p>Real-time bus tracking and schedule management system</p>
-            <div id="api-status-indicator" style="margin-top: 10px; font-size: 14px;">
-                <span class="api-status offline"></span> API: Checking...
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-bus"></i>
+                    </div>
+                    <div class="logo-text">Bus<span>Tracker</span></div>
+                </div>
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="total-buses">12</div>
+                        <div class="stat-label">Total Buses</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="active-buses">8</div>
+                        <div class="stat-label">Active Now</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="search-container">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search buses..." id="search-input">
+                </div>
+            </div>
+            
+            <div class="bus-list">
+                <div class="list-header">
+                    <div class="list-title">Active Fleet</div>
+                    <div class="list-count" id="bus-count">8 buses</div>
+                </div>
+                
+                <div class="bus-items" id="bus-list">
+                    <!-- Bus items will be loaded here -->
+                    <div class="loading">
+                        <div class="loading-spinner"></div>
+                        <div>Loading buses...</div>
+                    </div>
+                </div>
             </div>
         </div>
         
-        <!-- [Rest of your HTML remains the same] -->
-        <!-- ... -->
-    </div>
-    
-    <!-- Debug Panel -->
-    <div class="debug-panel" id="debug-panel">
-        <h4 style="margin-bottom: 10px;">Debug Info</h4>
-        <div id="debug-content"></div>
-    </div>
-    <div class="debug-toggle" id="debug-toggle">
-        <i class="fas fa-bug"></i>
-    </div>
-
-    <script>
-        // ============================================
-        // CONFIGURATION
-        // ============================================
-        // IMPORTANT: Change this to match your Django server URL
-        const API_BASE = 'http://127.0.0.1:8000';  // Django default port
-        // const API_BASE = 'http://localhost:8000'; // Alternative
-        
-        // Enable debug mode
-        const DEBUG_MODE = true;
-        
-        // Global variables
-        let map = null;
-        let markers = [];
-        let schedules = [];
-        let buses = [];
-        let debugLogs = [];
-
-        // ============================================
-        // DEBUG UTILITIES
-        // ============================================
-        function logDebug(message, type = 'info') {
-            const timestamp = new Date().toLocaleTimeString();
-            const logEntry = {
-                time: timestamp,
-                message: message,
-                type: type
-            };
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="top-bar">
+                <div class="page-title">Live Bus Tracking</div>
+                <div class="actions">
+                    <div class="time-display" id="current-time">
+                        <i class="far fa-clock mr-1"></i>
+                        <span id="time-text">Loading...</span>
+                    </div>
+                    <button class="btn" id="refresh-btn">
+                        <i class="fas fa-sync-alt"></i>
+                        Refresh
+                    </button>
+                    <button class="btn btn-primary" id="schedule-btn">
+                        <i class="far fa-calendar-alt"></i>
+                        View Schedule
+                    </button>
+                </div>
+            </div>
             
-            debugLogs.push(logEntry);
+            <div class="map-container">
+                <div id="map"></div>
+                <div class="map-controls">
+                    <button class="map-btn" id="zoom-in">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <button class="map-btn" id="zoom-out">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <button class="map-btn" id="locate-me">
+                        <i class="fas fa-location-crosshairs"></i>
+                    </button>
+                </div>
+            </div>
             
-            if (DEBUG_MODE) {
-                console.log(`[${timestamp}] ${message}`);
-                
-                // Update debug panel
-                const debugContent = document.getElementById('debug-content');
-                if (debugContent) {
-                    const color = type === 'error' ? '#ef4444' : 
-                                 type === 'success' ? '#10b981' : '#3b82f6';
-                    debugContent.innerHTML += 
-                        `<div style="color: ${color}; margin-bottom: 5px;">
-                            [${timestamp}] ${message}
-                        </div>`;
-                    debugContent.scrollTop = debugContent.scrollHeight;
-                }
-            }
-        }
-
-        // ============================================
-        // API HEALTH CHECK
-        // ============================================
-        async function checkApiHealth() {
-            const endpoints = [
-                '/api/update-location/',
-                '/api/schedules/',
-                '/api/stops/'
-            ];
-            
-            const statusIndicator = document.getElementById('api-status-indicator');
-            let allOnline = true;
-            
-            for (const endpoint of endpoints) {
-                try {
-                    const response = await fetch(`${API_BASE}${endpoint}`, {
-                        method: 'GET',
-                        headers: {
-                            'Accept': 'application/json'
-                        }
-                    });
+            <div class="bottom-panel" id="selected-bus-panel">
+                <div class="selected-bus-info">
+                    <div class="info-header">
+                        <div class="info-title" id="selected-bus-name">No bus selected</div>
+                        <div class="status-badge status-idle" id="selected-bus-status">
+                            <i class="fas fa-circle"></i>
+                            Idle
+                        </div>
+                    </div>
                     
-                    if (response.ok) {
-                        logDebug(`✓ ${endpoint} is accessible`, 'success');
-                    } else {
-                        logDebug(`✗ ${endpoint} returned ${response.status}`, 'error');
-                        allOnline = false;
-                    }
-                } catch (error) {
-                    logDebug(`✗ ${endpoint} failed: ${error.message}`, 'error');
-                    allOnline = false;
-                }
-            }
-            
-            if (statusIndicator) {
-                if (allOnline) {
-                    statusIndicator.innerHTML = 
-                        '<span class="api-status online"></span> API: All endpoints online';
-                    statusIndicator.style.color = '#10b981';
-                } else {
-                    statusIndicator.innerHTML = 
-                        '<span class="api-status offline"></span> API: Some endpoints offline';
-                    statusIndicator.style.color = '#ef4444';
-                }
-            }
-            
-            return allOnline;
-        }
+                    <div class="bus-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill"></div>
+                        </div>
+                        <div class="progress-stops" id="progress-text">Route: 0/12 stops</div>
+                    </div>
+                    
+                    <div class="info-metrics">
+                        <div class="info-metric">
+                            <div class="metric-label-small">Speed</div>
+                            <div class="metric-value-large" id="selected-speed">0 km/h</div>
+                        </div>
+                        <div class="info-metric">
+                            <div class="metric-label-small">Route</div>
+                            <div class="metric-value-large" id="selected-route">—</div>
+                        </div>
+                        <div class="info-metric">
+                            <div class="metric-label-small">Current Stop</div>
+                            <div class="metric-value-large" id="selected-stop">—</div>
+                        </div>
+                        <div class="info-metric">
+                            <div class="metric-label-small">Last Update</div>
+                            <div class="metric-value-large" id="selected-update">—</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Schedule Modal -->
+        <div class="modal" id="schedule-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="modal-title">
+                        <i class="far fa-calendar-alt mr-2"></i>
+                        Bus Schedule
+                    </div>
+                    <button class="modal-close" id="close-schedule">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="modal-filters">
+                    <select class="filter-select" id="filter-day">
+                        <option value="">All Days</option>
+                        <option value="SUN_THU">Sunday - Thursday</option>
+                        <option value="FRI">Friday</option>
+                        <option value="SAT">Saturday</option>
+                        <option value="TUE">Tuesday</option>
+                    </select>
+                    
+                    <select class="filter-select" id="filter-direction">
+                        <option value="">All Directions</option>
+                        <option value="CAMPUS_TO_CITY">Campus to City</option>
+                        <option value="CITY_TO_CAMPUS">City to Campus</option>
+                    </select>
+                    
+                    <select class="filter-select" id="filter-type">
+                        <option value="">All Types</option>
+                        <option value="ছাত্র-ছাত্রী">Student</option>
+                        <option value="শিক্ষক">Teacher</option>
+                        <option value="সাধারণ">General</option>
+                    </select>
+                    
+                    <button class="btn btn-primary" id="apply-filters">
+                        Apply Filters
+                    </button>
+                </div>
+                
+                <div class="modal-body">
+                    <table class="schedule-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Direction</th>
+                                <th>Trip Type</th>
+                                <th>Bus Numbers</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="schedule-table-body">
+                            <tr>
+                                <td colspan="5" class="text-center py-8">
+                                    <div class="loading">
+                                        <div class="loading-spinner"></div>
+                                        <div class="mt-2">Loading schedule...</div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        // ============================================
-        // ENHANCED FETCH WITH ERROR HANDLING
-        // ============================================
-        async function safeFetch(url, options = {}) {
-            const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`;
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Configuration
+        const API_BASE = 'http://localhost:8000';
+        let map, markers = {}, selectedBusId = null;
+        
+        // Initialize Map
+        function initMap() {
+            map = L.map('map', {
+                zoomControl: false,
+                attributionControl: false
+            }).setView([23.8103, 90.4125], 13);
             
-            logDebug(`Fetching: ${fullUrl}`);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
             
+            // Add zoom controls
+            L.control.zoom({ position: 'bottomright' }).addTo(map);
+            
+            // Map control buttons
+            document.getElementById('zoom-in').addEventListener('click', () => map.zoomIn());
+            document.getElementById('zoom-out').addEventListener('click', () => map.zoomOut());
+            document.getElementById('locate-me').addEventListener('click', () => {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(pos => {
+                        map.flyTo([pos.coords.latitude, pos.coords.longitude], 15);
+                    });
+                }
+            });
+        }
+        
+        // Update time display
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            document.getElementById('time-text').textContent = timeString;
+        }
+        
+        // Load bus data
+        async function loadBuses() {
             try {
-                const response = await fetch(fullUrl, {
-                    ...options,
-                    headers: {
-                        'Accept': 'application/json',
-                        ...options.headers
-                    }
-                });
-                
-                if (!response.ok) {
-                    if (response.status === 404) {
-                        throw new Error(`Endpoint not found (404): ${url}`);
-                    }
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                // Check if response is JSON
-                const contentType = response.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    const text = await response.text();
-                    logDebug(`Non-JSON response from ${url}: ${text.substring(0, 100)}`, 'error');
-                    throw new Error('Server returned non-JSON response');
-                }
-                
+                const response = await fetch(`${API_BASE}/api/update-location/`);
                 const data = await response.json();
-                logDebug(`Success: ${url}`, 'success');
-                return data;
                 
+                if (data.status === 'success') {
+                    updateBusList(data.buses);
+                    updateBusMarkers(data.buses);
+                    updateStats(data.buses);
+                    
+                    // Update selected bus if exists
+                    if (selectedBusId && data.buses.find(b => b.id === selectedBusId)) {
+                        const bus = data.buses.find(b => b.id === selectedBusId);
+                        updateSelectedBus(bus);
+                    }
+                }
             } catch (error) {
-                logDebug(`Fetch error: ${error.message}`, 'error');
-                throw error;
+                console.error('Error loading buses:', error);
+                showError('Failed to load bus data');
             }
         }
-
-        // ============================================
-        // TAB MANAGEMENT (Keep your existing code)
-        // ============================================
-        document.querySelectorAll('.tab-btn').forEach(button => {
-            button.addEventListener('click', () => {
-                // Remove active class from all tabs
-                document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-                
-                // Add active class to clicked tab
-                button.classList.add('active');
-                const tabId = button.getAttribute('data-tab');
-                document.getElementById(tabId).classList.add('active');
-                
-                // Load data for the tab
-                if (tabId === 'live-tracking') {
-                    initializeMap();
-                } else if (tabId === 'schedule') {
-                    loadSchedules();
-                } else if (tabId === 'buses') {
-                    loadBuses();
-                } else if (tabId === 'dashboard') {
-                    loadDashboard();
-                }
-            });
-        });
-
-        // ============================================
-        // DASHBOARD FUNCTIONS (Enhanced)
-        // ============================================
-        async function loadDashboard() {
-            logDebug('Loading dashboard...');
+        
+        // Update bus list
+        function updateBusList(buses) {
+            const container = document.getElementById('bus-list');
+            const countElement = document.getElementById('bus-count');
             
-            try {
-                // Load bus data
-                const busData = await safeFetch('/api/update-location/');
-                
-                if (busData.status === 'success') {
-                    buses = busData.buses;
-                    updateDashboardStats(buses);
-                    updateLiveStatusTable(buses);
-                } else {
-                    throw new Error('Invalid response format from bus API');
-                }
-                
-                // Load upcoming schedules
-                await loadUpcomingSchedules();
-                
-            } catch (error) {
-                logDebug(`Dashboard error: ${error.message}`, 'error');
-                showNotification(`Dashboard error: ${error.message}`, 'error');
-                
-                // Show demo data for development
-                if (DEBUG_MODE) {
-                    showDemoData();
-                }
-            }
-        }
-
-        // Demo data for development
-        function showDemoData() {
-            logDebug('Showing demo data for development', 'warning');
-            
-            const demoBuses = [
-                {
-                    id: 'bus-001',
-                    name: 'Demo Bus 1',
-                    route: 'Route 1',
-                    speed: 25,
-                    trip_status: 'ON_TRIP',
-                    status: 'moving',
-                    current_stop: 'Mirpur 10',
-                    last_seen: Date.now() / 1000
-                },
-                {
-                    id: 'bus-002',
-                    name: 'Demo Bus 2',
-                    route: 'Route 2',
-                    speed: 0,
-                    trip_status: 'READY',
-                    status: 'stopped',
-                    current_stop: 'Campus Terminal',
-                    last_seen: Date.now() / 1000
-                }
-            ];
-            
-            updateDashboardStats(demoBuses);
-            updateLiveStatusTable(demoBuses);
-            
-            // Demo schedules
-            const demoSchedules = [
-                {
-                    id: 1,
-                    trip_name: 'ছাত্র-ছাত্রী',
-                    direction: 'CAMPUS_TO_CITY',
-                    direction_label: 'Campus to City',
-                    day_type: 'SUN_THU',
-                    departure_time: '08:30:00',
-                    formatted_time: '08:30 AM',
-                    bus_number: '১৭',
-                    note: 'Via Mirpur Road',
-                    is_active: true
-                },
-                {
-                    id: 2,
-                    trip_name: 'শিক্ষক',
-                    direction: 'CITY_TO_CAMPUS',
-                    direction_label: 'City to Campus',
-                    day_type: 'SUN_THU',
-                    departure_time: '09:15:00',
-                    formatted_time: '09:15 AM',
-                    bus_number: '১,২',
-                    note: '',
-                    is_active: true
-                }
-            ];
-            
-            displayUpcomingSchedules(demoSchedules);
-            updateTodaySchedulesCount(demoSchedules.length);
-        }
-
-        // Update dashboard statistics
-        function updateDashboardStats(buses) {
-            const totalBuses = buses.length;
-            const activeBuses = buses.filter(bus => bus.status !== 'offline').length;
-            const onTripBuses = buses.filter(bus => bus.trip_status === 'ON_TRIP').length;
-            
-            document.getElementById('total-buses').textContent = totalBuses;
-            document.getElementById('active-buses').textContent = activeBuses;
-            document.getElementById('on-trip').textContent = onTripBuses;
-            
-            logDebug(`Stats: ${totalBuses} total, ${activeBuses} active, ${onTripBuses} on trip`);
-        }
-
-        // Update live status table
-        function updateLiveStatusTable(buses) {
-            const tbody = document.getElementById('live-status-table');
-            tbody.innerHTML = '';
-            
-            // Sort buses by status (active first)
-            const sortedBuses = [...buses].sort((a, b) => {
-                if (a.status === 'offline' && b.status !== 'offline') return 1;
-                if (a.status !== 'offline' && b.status === 'offline') return -1;
-                return 0;
-            });
-            
-            sortedBuses.slice(0, 5).forEach(bus => {
-                const row = document.createElement('tr');
-                
-                // Determine status badge
-                let statusBadge = '';
-                if (bus.trip_status === 'ON_TRIP') {
-                    statusBadge = `<span class="badge badge-on_trip">On Trip</span>`;
-                } else if (bus.trip_status === 'READY') {
-                    statusBadge = `<span class="badge badge-ready">Ready</span>`;
-                } else {
-                    statusBadge = `<span class="badge badge-idle">Idle</span>`;
-                }
-                
-                // Determine movement badge
-                const movementBadge = bus.status === 'moving' 
-                    ? `<span class="badge badge-moving">Moving</span>`
-                    : `<span class="badge badge-stopped">Stopped</span>`;
-                
-                row.innerHTML = `
-                    <td><strong>${bus.name}</strong><br><small>${bus.route}</small></td>
-                    <td>${statusBadge}</td>
-                    <td>${bus.speed ? Math.round(bus.speed) : 0} km/h</td>
-                    <td>${bus.current_stop || 'On Route'}</td>
+            if (buses.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8">
+                        <i class="fas fa-bus-slash text-3xl text-gray-400 mb-3"></i>
+                        <div class="text-gray-500">No active buses</div>
+                    </div>
                 `;
-                tbody.appendChild(row);
-            });
-        }
-
-        // Load upcoming schedules
-        async function loadUpcomingSchedules() {
-            try {
-                const now = new Date();
-                const currentTime = now.getHours() * 60 + now.getMinutes();
-                
-                // Determine day type based on current day
-                const day = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
-                let dayType = 'SUN_THU';
-                if (day === 5) dayType = 'FRI';
-                else if (day === 6) dayType = 'SAT';
-                else if (day === 2) dayType = 'TUE';
-                
-                // Load schedules for today
-                const schedules = await safeFetch(`/api/schedules/?day_type=${dayType}`);
-                
-                // Filter upcoming schedules
-                const upcoming = schedules.filter(schedule => {
-                    const [hours, minutes] = schedule.departure_time.split(':');
-                    const scheduleTime = parseInt(hours) * 60 + parseInt(minutes);
-                    return scheduleTime > currentTime;
-                }).slice(0, 5); // Get next 5 schedules
-                
-                updateTodaySchedulesCount(upcoming.length);
-                displayUpcomingSchedules(upcoming);
-                
-            } catch (error) {
-                logDebug(`Upcoming schedules error: ${error.message}`, 'error');
-                
-                if (DEBUG_MODE) {
-                    // Show demo data
-                    const demoUpcoming = [
-                        {
-                            trip_name: 'ছাত্র-ছাত্রী',
-                            direction_label: 'Campus to City',
-                            departure_time: '10:30:00',
-                            formatted_time: '10:30 AM',
-                            bus_number: '১৭',
-                            note: 'Demo schedule'
-                        }
-                    ];
-                    displayUpcomingSchedules(demoUpcoming);
-                    updateTodaySchedulesCount(1);
-                }
-            }
-        }
-
-        // Update today's schedules count
-        function updateTodaySchedulesCount(count) {
-            document.getElementById('today-schedules').textContent = count;
-        }
-
-        // Display upcoming schedules
-        function displayUpcomingSchedules(schedules) {
-            const container = document.getElementById('upcoming-schedules');
-            
-            if (schedules.length === 0) {
-                container.innerHTML = '<p class="text-center">No upcoming schedules for today</p>';
+                countElement.textContent = '0 buses';
                 return;
             }
             
-            container.innerHTML = schedules.map(schedule => `
-                <div class="schedule-card">
-                    <div class="schedule-time">${schedule.formatted_time || schedule.departure_time}</div>
-                    <div class="schedule-details">
-                        <div class="schedule-detail">
-                            <span class="detail-label">Trip:</span>
-                            <span class="detail-value">${schedule.trip_name}</span>
-                        </div>
-                        <div class="schedule-detail">
-                            <span class="detail-label">Direction:</span>
-                            <span class="detail-value">${schedule.direction_label || schedule.direction}</span>
-                        </div>
-                        <div class="schedule-detail">
-                            <span class="detail-label">Bus:</span>
-                            <span class="detail-value">${schedule.bus_number}</span>
-                        </div>
-                        ${schedule.note ? `
-                        <div class="schedule-detail">
-                            <span class="detail-label">Note:</span>
-                            <span class="detail-value">${schedule.note}</span>
-                        </div>
-                        ` : ''}
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        // ============================================
-        // SCHEDULE MANAGEMENT (Enhanced)
-        // ============================================
-        async function loadSchedules(filters = {}) {
-            try {
-                // Build query string from filters
-                const queryParams = new URLSearchParams();
-                if (filters.direction) queryParams.append('direction', filters.direction);
-                if (filters.day_type) queryParams.append('day_type', filters.day_type);
-                if (filters.trip_name) queryParams.append('trip_name', filters.trip_name);
+            // Filter buses by search
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const filteredBuses = buses.filter(bus => 
+                bus.name.toLowerCase().includes(searchTerm) ||
+                bus.route.toLowerCase().includes(searchTerm)
+            );
+            
+            countElement.textContent = `${filteredBuses.length} buses`;
+            
+            container.innerHTML = filteredBuses.map(bus => {
+                const statusClass = getStatusClass(bus);
+                const statusText = getStatusText(bus);
                 
-                const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
-                schedules = await safeFetch(`/api/schedules/${queryString}`);
-                
-                displaySchedulesTable(schedules);
-                
-            } catch (error) {
-                logDebug(`Load schedules error: ${error.message}`, 'error');
-                
-                document.getElementById('schedule-table').innerHTML = `
-                    <tr>
-                        <td colspan="8" class="text-center">
-                            <div style="color: #ef4444; padding: 20px;">
-                                <i class="fas fa-exclamation-triangle" style="font-size: 24px; margin-bottom: 10px;"></i>
-                                <p>Error loading schedules: ${error.message}</p>
-                                ${DEBUG_MODE ? '<p><small>Running in demo mode with sample data</small></p>' : ''}
+                return `
+                    <div class="bus-item ${selectedBusId === bus.id ? 'active' : ''}" 
+                         data-bus-id="${bus.id}">
+                        <div class="bus-header">
+                            <div>
+                                <div class="bus-name">${bus.name}</div>
+                                <div class="bus-route">${bus.route}</div>
                             </div>
-                        </td>
-                    </tr>
+                            <div class="status-badge ${statusClass}">
+                                <i class="fas fa-circle"></i>
+                                ${statusText}
+                            </div>
+                        </div>
+                        <div class="bus-metrics">
+                            <div class="metric">
+                                <i class="fas fa-tachometer-alt"></i>
+                                <span>Speed: <span class="metric-value">${Math.round(bus.speed)} km/h</span></span>
+                            </div>
+                            <div class="metric">
+                                <i class="fas fa-map-marker-alt"></i>
+                                <span>Stop: <span class="metric-value">${bus.current_stop || 'In transit'}</span></span>
+                            </div>
+                        </div>
+                    </div>
                 `;
-                
-                if (DEBUG_MODE) {
-                    // Show demo schedules
-                    setTimeout(() => {
-                        const demoSchedules = [
-                            {
-                                id: 1,
-                                trip_name: 'ছাত্র-ছাত্রী',
-                                direction: 'CAMPUS_TO_CITY',
-                                direction_label: 'Campus to City',
-                                day_type: 'SUN_THU',
-                                departure_time: '08:30:00',
-                                formatted_time: '08:30 AM',
-                                bus_number: '১৭',
-                                note: 'Via Mirpur Road',
-                                is_active: true
-                            },
-                            {
-                                id: 2,
-                                trip_name: 'শিক্ষক',
-                                direction: 'CITY_TO_CAMPUS',
-                                direction_label: 'City to Campus',
-                                day_type: 'SUN_THU',
-                                departure_time: '09:15:00',
-                                formatted_time: '09:15 AM',
-                                bus_number: '১,২',
-                                note: 'Direct service',
-                                is_active: true
-                            }
-                        ];
-                        displaySchedulesTable(demoSchedules);
-                    }, 1000);
+            }).join('');
+            
+            // Add click handlers
+            document.querySelectorAll('.bus-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const busId = item.dataset.busId;
+                    const bus = buses.find(b => b.id === busId);
+                    if (bus) {
+                        selectBus(bus);
+                    }
+                });
+            });
+        }
+        
+        // Update bus markers on map
+        function updateBusMarkers(buses) {
+            buses.forEach(bus => {
+                if (!markers[bus.id]) {
+                    // Create new marker
+                    const icon = L.divIcon({
+                        html: createBusIcon(bus),
+                        className: 'bus-marker',
+                        iconSize: [30, 30],
+                        iconAnchor: [15, 30]
+                    });
+                    
+                    markers[bus.id] = L.marker([bus.lat, bus.lng], { icon })
+                        .addTo(map)
+                        .bindTooltip(bus.name)
+                        .on('click', () => selectBus(bus));
+                } else {
+                    // Update existing marker
+                    markers[bus.id].setLatLng([bus.lat, bus.lng]);
+                    markers[bus.id].setIcon(L.divIcon({
+                        html: createBusIcon(bus),
+                        className: 'bus-marker',
+                        iconSize: [30, 30],
+                        iconAnchor: [15, 30]
+                    }));
                 }
+            });
+            
+            // Remove markers for buses that are no longer active
+            Object.keys(markers).forEach(id => {
+                if (!buses.find(b => b.id === id)) {
+                    map.removeLayer(markers[id]);
+                    delete markers[id];
+                }
+            });
+        }
+        
+        // Create bus icon
+        function createBusIcon(bus) {
+            let color = '#10b981'; // Moving
+            if (bus.trip_status === 'READY') color = '#f59e0b';
+            if (bus.trip_status === 'IDLE') color = '#6b7280';
+            
+            return `
+                <div style="
+                    width: 30px;
+                    height: 30px;
+                    background: ${color};
+                    border: 2px solid white;
+                    border-radius: 50%;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
+                    font-size: 12px;
+                ">
+                    <i class="fas fa-bus"></i>
+                </div>
+            `;
+        }
+        
+        // Get status class
+        function getStatusClass(bus) {
+            if (bus.trip_status === 'ON_TRIP') return 'status-on-trip';
+            if (bus.trip_status === 'READY') return 'status-ready';
+            return 'status-idle';
+        }
+        
+        // Get status text
+        function getStatusText(bus) {
+            if (bus.trip_status === 'ON_TRIP') return 'On Trip';
+            if (bus.trip_status === 'READY') return 'Ready';
+            return 'Idle';
+        }
+        
+        // Update statistics
+        function updateStats(buses) {
+            document.getElementById('total-buses').textContent = buses.length;
+            const active = buses.filter(b => b.trip_status !== 'IDLE').length;
+            document.getElementById('active-buses').textContent = active;
+        }
+        
+        // Select a bus
+        function selectBus(bus) {
+            selectedBusId = bus.id;
+            
+            // Update UI
+            document.querySelectorAll('.bus-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.querySelector(`[data-bus-id="${bus.id}"]`)?.classList.add('active');
+            
+            // Center map on bus
+            map.flyTo([bus.lat, bus.lng], 15, {
+                duration: 1
+            });
+            
+            // Update bottom panel
+            updateSelectedBus(bus);
+        }
+        
+        // Update selected bus info
+        function updateSelectedBus(bus) {
+            document.getElementById('selected-bus-name').textContent = bus.name;
+            document.getElementById('selected-route').textContent = bus.route;
+            document.getElementById('selected-speed').textContent = `${Math.round(bus.speed)} km/h`;
+            document.getElementById('selected-stop').textContent = bus.current_stop || '—';
+            document.getElementById('selected-update').textContent = 'Just now';
+            
+            // Update status
+            const statusClass = getStatusClass(bus);
+            const statusText = getStatusText(bus);
+            const statusElement = document.getElementById('selected-bus-status');
+            statusElement.className = `status-badge ${statusClass}`;
+            statusElement.innerHTML = `<i class="fas fa-circle"></i> ${statusText}`;
+            
+            // Show progress (example)
+            const progress = 60; // Example: 60% complete
+            document.querySelector('.progress-fill').style.width = `${progress}%`;
+            document.getElementById('progress-text').textContent = `Route: ${Math.round(progress/100*12)}/12 stops`;
+            
+            // Show panel
+            document.getElementById('selected-bus-panel').classList.remove('hidden');
+        }
+        
+        // Schedule modal functions
+        document.getElementById('schedule-btn').addEventListener('click', () => {
+            document.getElementById('schedule-modal').classList.add('active');
+            loadSchedule();
+        });
+        
+        document.getElementById('close-schedule').addEventListener('click', () => {
+            document.getElementById('schedule-modal').classList.remove('active');
+        });
+        
+        document.getElementById('apply-filters').addEventListener('click', loadSchedule);
+        
+        // Load schedule
+        async function loadSchedule() {
+            const day = document.getElementById('filter-day').value;
+            const direction = document.getElementById('filter-direction').value;
+            const type = document.getElementById('filter-type').value;
+            
+            let url = `${API_BASE}/api/schedule/?`;
+            if (day) url += `day_type=${day}&`;
+            if (direction) url += `direction=${direction}&`;
+            if (type) url += `trip_name=${encodeURIComponent(type)}`;
+            
+            try {
+                const response = await fetch(url);
+                const schedules = await response.json();
+                
+                const tbody = document.getElementById('schedule-table-body');
+                
+                if (schedules.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="text-center py-8">
+                                <i class="fas fa-calendar-times text-3xl text-gray-400 mb-3"></i>
+                                <div class="text-gray-500">No schedules found</div>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                tbody.innerHTML = schedules.map(schedule => `
+                    <tr>
+                        <td class="time-cell">${schedule.formatted_time || schedule.departure_time}</td>
+                        <td>${schedule.direction_label || schedule.direction}</td>
+                        <td>${schedule.trip_name}</td>
+                        <td>${schedule.bus_number}</td>
+                        <td>${schedule.note || '—'}</td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading schedule:', error);
+                showError('Failed to load schedule');
             }
         }
-
-        // ============================================
-        // NOTIFICATION SYSTEM
-        // ============================================
-        function showNotification(message, type = 'info') {
-            // Create notification element
-            const notification = document.createElement('div');
-            notification.style.cssText = `
+        
+        // Search functionality
+        document.getElementById('search-input').addEventListener('input', () => {
+            loadBuses();
+        });
+        
+        // Refresh button
+        document.getElementById('refresh-btn').addEventListener('click', loadBuses);
+        
+        // Error handling
+        function showError(message) {
+            // Simple error notification
+            const errorDiv = document.createElement('div');
+            errorDiv.style.cssText = `
                 position: fixed;
-                top: 20px;
+                bottom: 20px;
                 right: 20px;
-                padding: 15px 20px;
-                background: ${type === 'success' ? '#10b981' : type === 'warning' ? '#f59e0b' : '#ef4444'};
+                background: #ef4444;
                 color: white;
+                padding: 12px 16px;
                 border-radius: 8px;
-                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-                z-index: 1001;
+                z-index: 1000;
                 animation: slideIn 0.3s ease;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                max-width: 400px;
             `;
-            
-            const icon = type === 'success' ? 'fa-check-circle' : 
-                        type === 'warning' ? 'fa-exclamation-triangle' : 'fa-exclamation-circle';
-            
-            notification.innerHTML = `
-                <i class="fas ${icon}"></i>
-                <span>${message}</span>
+            errorDiv.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span>${message}</span>
+                </div>
             `;
+            document.body.appendChild(errorDiv);
             
-            document.body.appendChild(notification);
-            
-            // Add CSS animations if not already added
-            if (!document.getElementById('notification-styles')) {
-                const style = document.createElement('style');
-                style.id = 'notification-styles';
-                style.textContent = `
-                    @keyframes slideIn {
-                        from { transform: translateX(100%); opacity: 0; }
-                        to { transform: translateX(0); opacity: 1; }
-                    }
-                    @keyframes slideOut {
-                        from { transform: translateX(0); opacity: 1; }
-                        to { transform: translateX(100%); opacity: 0; }
-                    }
-                `;
-                document.head.appendChild(style);
-            }
-            
-            // Remove after 5 seconds
             setTimeout(() => {
-                notification.style.animation = 'slideOut 0.3s ease';
-                setTimeout(() => notification.remove(), 300);
+                errorDiv.remove();
             }, 5000);
         }
-
-        // ============================================
-        // DEBUG PANEL TOGGLE
-        // ============================================
-        document.getElementById('debug-toggle').addEventListener('click', () => {
-            const panel = document.getElementById('debug-panel');
-            panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
-        });
-
-        // ============================================
-        // INITIALIZATION
-        // ============================================
-        document.addEventListener('DOMContentLoaded', async () => {
-            logDebug('Dashboard initializing...');
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            updateTime();
+            loadBuses();
             
-            // Check API health
-            await checkApiHealth();
+            // Update time every second
+            setInterval(updateTime, 1000);
             
-            // Load dashboard
-            await loadDashboard();
+            // Auto-refresh every 30 seconds
+            setInterval(loadBuses, 30000);
             
-            // Set current time in departure time field
-            const now = new Date();
-            const hours = now.getHours().toString().padStart(2, '0');
-            const minutes = now.getMinutes().toString().padStart(2, '0');
-            const timeField = document.getElementById('departure_time');
-            if (timeField) {
-                timeField.value = `${hours}:${minutes}`;
-            }
-            
-            // Auto-refresh dashboard every 30 seconds
-            setInterval(() => {
-                if (document.querySelector('#dashboard.tab-content.active')) {
-                    loadDashboard();
+            // Demo data for testing
+            setTimeout(() => {
+                // Check if we have real data
+                const busList = document.getElementById('bus-list');
+                if (busList.querySelector('.loading')) {
+                    // Show demo data
+                    const demoBuses = [
+                        {
+                            id: 'bus-1',
+                            name: 'Campus Express',
+                            route: 'University → City Center',
+                            lat: 23.815,
+                            lng: 90.41,
+                            speed: 25,
+                            trip_status: 'ON_TRIP',
+                            current_stop: 'Mirpur 10'
+                        },
+                        {
+                            id: 'bus-2',
+                            name: 'City Shuttle',
+                            route: 'City Center → University',
+                            lat: 23.805,
+                            lng: 90.42,
+                            speed: 0,
+                            trip_status: 'READY',
+                            current_stop: 'Farmgate'
+                        }
+                    ];
+                    
+                    updateBusList(demoBuses);
+                    updateBusMarkers(demoBuses);
+                    updateStats(demoBuses);
+                    
+                    // Auto-select first bus
+                    selectBus(demoBuses[0]);
                 }
-            }, 30000);
-            
-            logDebug('Dashboard initialized successfully', 'success');
-            showNotification('Dashboard loaded successfully', 'success');
+            }, 2000);
         });
-
-        // ============================================
-        // REMAINING FUNCTIONS (Keep your existing code)
-        // ============================================
-        // Keep all your other functions (initializeMap, loadBuses, etc.)
-        // They should work with the new safeFetch function
-        
-        // [The rest of your JavaScript functions remain the same]
-        // Just replace fetch() calls with safeFetch() for better error handling
-        
     </script>
 </body>
 </html>

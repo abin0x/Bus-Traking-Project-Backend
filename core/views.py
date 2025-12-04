@@ -1,7 +1,8 @@
 import json
 from django.http import JsonResponse
 from django_filters.rest_framework import DjangoFilterBackend
-
+from rest_framework.views import APIView
+from rest_framework.response import Response
 from django.views import View
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -372,13 +373,53 @@ def get_stops(request):
 
 # ----------------------------------- Bus Schedule views Below-------------------  
 class BusScheduleViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint for managing bus schedules.
-    Query Parameters example: 
-    /api/schedule/?day_type=SUN_THU&direction=CAMPUS_TO_CITY
-    """
+    
     queryset = BusSchedule.objects.filter(is_active=True).order_by('departure_time')
     serializer_class = BusScheduleSerializer
     filter_backends = [DjangoFilterBackend]
     # এই ফিল্ডগুলো দিয়ে ফিল্টার করা যাবে
     filterset_fields = ['day_type', 'direction', 'trip_name']
+
+# ----------------------------next bus schedule for every 30 min ----------------- 
+class NextBusScheduleView(APIView):
+    def get(self, request):
+        # ১. বর্তমান সময়
+        now = timezone.localtime(timezone.now())
+        current_time = now.time()
+        
+        # ২. আজকের দিন
+        weekday = now.weekday()
+        if weekday == 4: day_type = 'FRI'
+        elif weekday == 5: day_type = 'SAT'
+        else: day_type = 'SUN_THU'
+
+        # ৩. পরবর্তী সময়টি (Next Slot) খুঁজে বের করা
+        # যেমন: এখন ২:৩৪, পরবর্তী শিডিউল ৩:০০
+        next_slot = BusSchedule.objects.filter(
+            day_type=day_type,
+            departure_time__gte=current_time, # বর্তমান সময়ের পরের সময়
+            is_active=True
+        ).order_by('departure_time').first()
+
+        upcoming_buses = []
+        next_time_str = ""
+
+        if next_slot:
+            # ৪. সেই নির্দিষ্ট সময়ের (Target Time) সব বাস খুঁজে বের করা
+            # যেমন: ৩:০০ টার সব বাস
+            target_time = next_slot.departure_time
+            
+            upcoming_buses = BusSchedule.objects.filter(
+                day_type=day_type,
+                departure_time=target_time, # Exact Match
+                is_active=True
+            )
+            next_time_str = target_time.strftime("%I:%M %p")
+
+        serializer = BusScheduleSerializer(upcoming_buses, many=True)
+
+        return Response({
+            "status": "success",
+            "next_slot": next_time_str, # যেমন: "03:00 PM"
+            "buses": serializer.data    # শুধু ৩:০০ টার বাসের লিস্ট
+        })
