@@ -12,4 +12,5 @@ urlpatterns = [
     path('api/stops/', get_stops, name='get_stops'),
     path('api/bus/<str:bus_id>/', LocationUpdateView.as_view(), name='get_bus_status'),
     path('api/next-buses/', NextBusScheduleView.as_view(), name='next_buses'),
+    path('auth/', TemplateView.as_view(template_name='auth.html'), name='auth_page'), #test for autentication page
 ]

@@ -26,6 +26,7 @@ class FacultyDataView(APIView):
 # ==========================================
 class StudentRegistrationView(APIView):
     permission_classes = [AllowAny]
+    authentication_classes = []
 
     def post(self, request):
         serializer = RegistrationSerializer(data=request.data)
@@ -83,6 +84,7 @@ class StudentRegistrationView(APIView):
 # ==========================================
 class VerifyOTPView(APIView):
     permission_classes = [AllowAny]
+    authentication_classes = []
 
     def post(self, request):
         serializer = VerifyOTPSerializer(data=request.data)
@@ -121,6 +123,7 @@ class VerifyOTPView(APIView):
 # ==========================================
 class LoginView(APIView):
     permission_classes = [AllowAny]
+    authentication_classes = []
 
     def post(self, request):
         serializer = LoginSerializer(data=request.data)

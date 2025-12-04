@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Portal - HSTU Bus</title>
+    
+    <!-- Tailwind CSS & Icons -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #f1f5f9; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .hidden-section { display: none; }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen bg-slate-100 p-4">
+
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden fade-in relative">
+        
+        <!-- Header Image / Branding -->
+        <div class="bg-blue-600 p-6 text-center text-white relative">
+            <div class="absolute top-0 left-0 w-full h-full bg-blue-700 opacity-20 pattern-grid-lg"></div>
+            <i class="fas fa-bus-alt text-4xl mb-2 relative z-10"></i>
+            <h2 class="text-2xl font-bold relative z-10">Fleet Command Center</h2>
+            <p class="text-blue-100 text-sm relative z-10">Student Access Portal</p>
+        </div>
+
+        <!-- =========================== -->
+        <!-- 1. LOGIN FORM -->
+        <!-- =========================== -->
+        <div id="login-section" class="p-8">
+            <h3 class="text-xl font-bold text-gray-800 mb-6 text-center">Login to your account</h3>
+            
+            <form onsubmit="handleLogin(event)">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Student ID</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-3 text-gray-400"><i class="fas fa-id-card"></i></span>
+                        <input type="text" id="login_id" required placeholder="Ex: 2002045" 
+                            class="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-3 text-gray-400"><i class="fas fa-lock"></i></span>
+                        <input type="password" id="login_pass" required placeholder="••••••••" 
+                            class="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                    </div>
+                </div>
+
+                <button type="submit" id="login_btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg transition duration-200">
+                    Sign In
+                </button>
+            </form>
+
+            <div class="mt-6 text-center text-sm text-gray-600">
+                Don't have an account? 
+                <a href="#" onclick="showSection('register-section')" class="text-blue-600 font-bold hover:underline">Register Now</a>
+            </div>
+        </div>
+
+        <!-- =========================== -->
+        <!-- 2. REGISTRATION FORM -->
+        <!-- =========================== -->
+        <div id="register-section" class="p-8 hidden-section">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-gray-800">Student Registration</h3>
+                <button onclick="showSection('login-section')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+            </div>
+
+            <form onsubmit="handleRegister(event)" class="space-y-3">
+                
+                <!-- Full Name -->
+                <div>
+                    <label class="text-xs font-bold text-gray-500 uppercase">Full Name</label>
+                    <input type="text" id="reg_name" required class="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 outline-none">
+                </div>
+
+                <!-- ID & Phone Row -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 uppercase">Student ID (7 Digit)</label>
+                        <input type="number" id="reg_id" required placeholder="2002045" oninput="autoFillBatch()"
+                            class="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 uppercase">Phone</label>
+                        <input type="text" id="reg_phone" required placeholder="017..." 
+                            class="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 outline-none">
+                    </div>
+                </div>
+
+                <!-- Email -->
+                <div>
+                    <label class="text-xs font-bold text-gray-500 uppercase">Email Address</label>
+                    <input type="email" id="reg_email" required class="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 outline-none">
+                </div>
+
+                <!-- Faculty Dropdown -->
+                <div>
+                    <label class="text-xs font-bold text-gray-500 uppercase">Faculty</label>
+                    <select id="reg_faculty" onchange="loadDepartments()" required 
+                        class="w-full p-2 border rounded bg-white focus:ring-1 focus:ring-blue-500 outline-none text-sm">
+                        <option value="">Select Faculty</option>
+                    </select>
+                </div>
+
+                <!-- Department Dropdown -->
+                <div>
+                    <label class="text-xs font-bold text-gray-500 uppercase">Department</label>
+                    <select id="reg_dept" required class="w-full p-2 border rounded bg-white focus:ring-1 focus:ring-blue-500 outline-none text-sm">
+                        <option value="">Select Faculty First</option>
+                    </select>
+                </div>
+
+                <!-- Batch & Password -->
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="col-span-1">
+                        <label class="text-xs font-bold text-gray-500 uppercase">Batch</label>
+                        <input type="text" id="reg_batch" readonly class="w-full p-2 border rounded bg-gray-100 text-gray-500 cursor-not-allowed">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="text-xs font-bold text-gray-500 uppercase">Password</label>
+                        <input type="password" id="reg_pass" required class="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 outline-none">
+                    </div>
+                </div>
+
+                <button type="submit" id="reg_btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded mt-2 transition">
+                    Create Account
+                </button>
+            </form>
+        </div>
+
+        <!-- =========================== -->
+        <!-- 3. OTP VERIFICATION FORM -->
+        <!-- =========================== -->
+        <div id="otp-section" class="p-8 hidden-section text-center">
+            <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-envelope-open-text text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800">Verify Email</h3>
+            <p class="text-sm text-gray-500 mb-6">We sent a 6-digit code to your email.</p>
+
+            <form onsubmit="handleVerify(event)">
+                <input type="text" id="otp_code" maxlength="6" required placeholder="123456" 
+                    class="w-32 text-center text-2xl font-bold tracking-widest border-2 border-gray-300 rounded-lg p-2 focus:border-blue-500 outline-none mb-6 mx-auto block">
+                
+                <button type="submit" id="otp_btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded transition">
+                    Verify & Activate
+                </button>
+            </form>
+            <p class="text-xs text-gray-400 mt-4 cursor-pointer hover:text-gray-600">Resend Code</p>
+        </div>
+
+    </div>
+
+    <!-- Alert Box (Toast) -->
+    <div id="toast" class="fixed bottom-5 right-5 px-6 py-3 rounded-lg shadow-lg text-white text-sm transform translate-y-20 transition-transform duration-300 hidden z-50"></div>
+
+    <script>
+        // --- GLOBAL VARIABLES ---
+        let facultyData = {};
+        let registeredStudentId = ""; // To store ID after registration for OTP
+
+        // --- 1. UI FUNCTIONS ---
+        function showSection(id) {
+            ['login-section', 'register-section', 'otp-section'].forEach(sec => {
+                document.getElementById(sec).classList.add('hidden-section');
+            });
+            const el = document.getElementById(id);
+            el.classList.remove('hidden-section');
+            el.classList.add('fade-in');
+        }
+
+        function showToast(msg, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.className = `fixed bottom-5 right-5 px-6 py-3 rounded-lg shadow-lg text-white text-sm transform transition-transform duration-300 z-50 ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
+            toast.classList.remove('translate-y-20', 'hidden');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20');
+                setTimeout(() => toast.classList.add('hidden'), 300);
+            }, 3000);
+        }
+
+        // --- 2. DATA LOADING (FACULTY) ---
+        // পেজ লোড হওয়ার সাথে সাথে ফ্যাকাল্টি ডেটা নিয়ে আসবে
+        fetch('/api/auth/faculty-data/')
+            .then(res => res.json())
+            .then(data => {
+                facultyData = data;
+                const facultySelect = document.getElementById('reg_faculty');
+                Object.keys(data).forEach(fac => {
+                    const option = document.createElement('option');
+                    option.value = fac;
+                    option.innerText = fac;
+                    facultySelect.appendChild(option);
+                });
+            })
+            .catch(err => console.error("Faculty Load Error:", err));
+
+        function loadDepartments() {
+            const faculty = document.getElementById('reg_faculty').value;
+            const deptSelect = document.getElementById('reg_dept');
+            deptSelect.innerHTML = '<option value="">Select Department</option>';
+            
+            if (faculty && facultyData[faculty]) {
+                facultyData[faculty].forEach(dept => {
+                    const option = document.createElement('option');
+                    option.value = dept;
+                    option.innerText = dept;
+                    deptSelect.appendChild(option);
+                });
+            }
+        }
+
+        // --- 3. AUTO FILL BATCH ---
+        function autoFillBatch() {
+            const id = document.getElementById('reg_id').value;
+            if (id.length >= 2) {
+                document.getElementById('reg_batch').value = id.substring(0, 2);
+            } else {
+                document.getElementById('reg_batch').value = '';
+            }
+        }
+
+        // --- 4. REGISTRATION HANDLER ---
+        function handleRegister(e) {
+            e.preventDefault();
+            const btn = document.getElementById('reg_btn');
+            btn.innerText = "Creating...";
+            btn.disabled = true;
+
+            const payload = {
+                full_name: document.getElementById('reg_name').value,
+                student_id: document.getElementById('reg_id').value,
+                phone_number: document.getElementById('reg_phone').value,
+                email: document.getElementById('reg_email').value,
+                faculty: document.getElementById('reg_faculty').value,
+                department: document.getElementById('reg_dept').value,
+                batch: document.getElementById('reg_batch').value,
+                password: document.getElementById('reg_pass').value
+            };
+
+            fetch('/api/auth/register/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(async res => {
+                const data = await res.json();
+                if (res.ok) {
+                    showToast('Registration Successful! Check Email.', 'success');
+                    registeredStudentId = data.student_id; // Save ID for OTP
+                    showSection('otp-section');
+                } else {
+                    // Show error from serializer
+                    const errorMsg = Object.values(data).flat()[0] || 'Registration Failed';
+                    showToast(errorMsg, 'error');
+                }
+            })
+            .catch(() => showToast('Network Error', 'error'))
+            .finally(() => {
+                btn.innerText = "Create Account";
+                btn.disabled = false;
+            });
+        }
+
+        // --- 5. OTP HANDLER ---
+        function handleVerify(e) {
+            e.preventDefault();
+            const btn = document.getElementById('otp_btn');
+            btn.innerText = "Verifying...";
+            
+            const payload = {
+                student_id: registeredStudentId,
+                otp: document.getElementById('otp_code').value
+            };
+
+            fetch('/api/auth/verify-otp/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(async res => {
+                const data = await res.json();
+                if (res.ok) {
+                    showToast('Account Verified! Please Login.', 'success');
+                    showSection('login-section');
+                } else {
+                    showToast(data.message || 'Invalid Code', 'error');
+                }
+            })
+            .finally(() => btn.innerText = "Verify & Activate");
+        }
+
+        // --- 6. LOGIN HANDLER ---
+        function handleLogin(e) {
+            e.preventDefault();
+            const btn = document.getElementById('login_btn');
+            btn.innerText = "Signing in...";
+
+            const payload = {
+                student_id: document.getElementById('login_id').value,
+                password: document.getElementById('login_pass').value
+            };
+
+            fetch('/api/auth/login/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(async res => {
+                const data = await res.json();
+                if (res.ok) {
+                    showToast('Login Successful!', 'success');
+                    
+                    // Save user info (Optional)
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    
+                    // Redirect to Map/Home
+                    setTimeout(() => window.location.href = '/', 1000);
+                } else {
+                    showToast(data.message || data.error || 'Login Failed', 'error');
+                }
+            })
+            .catch(() => showToast('Connection Failed', 'error'))
+            .finally(() => btn.innerText = "Sign In");
+        }
+
+    </script>
+</body>
+</html>
