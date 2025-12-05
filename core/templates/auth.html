@@ -54,6 +54,10 @@
                             class="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
                     </div>
                 </div>
+                <!-- Login Form এর ভেতরে -->
+<div class="flex justify-end mb-4">
+    <a href="#" onclick="showSection('forgot-section')" class="text-xs text-blue-600 hover:underline">Forgot Password?</a>
+</div>
 
                 <button type="submit" id="login_btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg transition duration-200">
                     Sign In
@@ -158,6 +162,35 @@
             </form>
             <p class="text-xs text-gray-400 mt-4 cursor-pointer hover:text-gray-600">Resend Code</p>
         </div>
+        <!-- =========================== -->
+        <!-- 4. FORGOT PASSWORD SECTION -->
+        <!-- =========================== -->
+        <div id="forgot-section" class="p-8 hidden-section">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-gray-800">Reset Password</h3>
+                <button onclick="showSection('login-section')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+            </div>
+
+            <!-- STEP 1: Send OTP -->
+            <div id="forgot-step-1">
+                <p class="text-sm text-gray-600 mb-4">Enter your Student ID to receive an OTP.</p>
+                <input type="text" id="forgot_id" placeholder="Student ID" class="w-full p-2 border rounded mb-4 focus:ring-1 focus:ring-blue-500">
+                <button onclick="handleForgotRequest()" id="forgot_req_btn" class="w-full bg-blue-600 text-white font-bold py-2 rounded">Send Code</button>
+            </div>
+
+            <!-- STEP 2: Verify & New Password (Hidden Initially) -->
+            <div id="forgot-step-2" class="hidden">
+                <p class="text-sm text-green-600 mb-4 font-bold">OTP sent to your email!</p>
+                
+                <label class="text-xs font-bold text-gray-500 uppercase">Enter OTP</label>
+                <input type="text" id="reset_otp" placeholder="123456" class="w-full p-2 border rounded mb-3">
+                
+                <label class="text-xs font-bold text-gray-500 uppercase">New Password</label>
+                <input type="password" id="reset_new_pass" placeholder="New Password" class="w-full p-2 border rounded mb-4">
+                
+                <button onclick="handleResetConfirm()" id="reset_btn" class="w-full bg-green-600 text-white font-bold py-2 rounded">Change Password</button>
+            </div>
+        </div>
 
     </div>
 
@@ -168,6 +201,7 @@
         // --- GLOBAL VARIABLES ---
         let facultyData = {};
         let registeredStudentId = ""; // To store ID after registration for OTP
+        let resetStudentId = ""; // Store ID for step 2
 
         // --- 1. UI FUNCTIONS ---
         function showSection(id) {
@@ -333,6 +367,85 @@
             })
             .catch(() => showToast('Connection Failed', 'error'))
             .finally(() => btn.innerText = "Sign In");
+        }
+        // --- 7. FORGOT PASSWORD HANDLERS ---
+        
+        
+
+        // Step 1: Request OTP
+        function handleForgotRequest() {
+            const btn = document.getElementById('forgot_req_btn');
+            const stdId = document.getElementById('forgot_id').value;
+            
+            if(!stdId) return showToast("Please enter Student ID", "error");
+
+            btn.innerText = "Sending...";
+            btn.disabled = true;
+
+            fetch('/api/auth/forgot-password/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ student_id: stdId })
+            })
+            .then(async res => {
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(data.message, 'success');
+                    resetStudentId = stdId;
+                    // UI Switch to Step 2
+                    document.getElementById('forgot-step-1').classList.add('hidden');
+                    document.getElementById('forgot-step-2').classList.remove('hidden');
+                } else {
+                    showToast(data.message || Object.values(data)[0] || "Error", 'error');
+                    btn.innerText = "Send Code";
+                    btn.disabled = false;
+                }
+            })
+            .catch(() => {
+                showToast("Network Error", "error");
+                btn.innerText = "Send Code";
+                btn.disabled = false;
+            });
+        }
+
+        // Step 2: Confirm Reset
+        function handleResetConfirm() {
+            const btn = document.getElementById('reset_btn');
+            const otp = document.getElementById('reset_otp').value;
+            const newPass = document.getElementById('reset_new_pass').value;
+
+            if(!otp || !newPass) return showToast("Fill all fields", "error");
+
+            btn.innerText = "Processing...";
+            
+            fetch('/api/auth/reset-password/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    student_id: resetStudentId,
+                    otp: otp,
+                    new_password: newPass
+                })
+            })
+            .then(async res => {
+                const data = await res.json();
+                if (res.ok) {
+                    showToast("Password Changed Successfully!", 'success');
+                    // Reset UI
+                    document.getElementById('forgot-step-1').classList.remove('hidden');
+                    document.getElementById('forgot-step-2').classList.add('hidden');
+                    document.getElementById('forgot_id').value = "";
+                    document.getElementById('reset_otp').value = "";
+                    document.getElementById('reset_new_pass').value = "";
+                    btn.innerText = "Change Password";
+                    
+                    showSection('login-section'); // Go to login
+                } else {
+                    showToast(data.message || "Failed to reset", 'error');
+                    btn.innerText = "Change Password";
+                }
+            })
+            .catch(() => showToast("Network Error", "error"));
         }
 
     </script>

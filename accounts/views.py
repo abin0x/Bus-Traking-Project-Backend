@@ -5,7 +5,7 @@ from rest_framework.permissions import AllowAny
 from django.contrib.auth import authenticate
 from django.core.mail import send_mail
 from django.conf import settings
-from .serializers import RegistrationSerializer, VerifyOTPSerializer, LoginSerializer
+from .serializers import RegistrationSerializer, VerifyOTPSerializer, LoginSerializer, ForgotPasswordRequestSerializer, PasswordResetConfirmSerializer
 from .data import FACULTY_DEPARTMENT_DATA
 from django.contrib.auth import get_user_model
 
@@ -166,4 +166,83 @@ class LoginView(APIView):
             else:
                 return Response({"status": "error", "message": "ভুল স্টুডেন্ট আইডি অথবা পাসওয়ার্ড।"}, status=status.HTTP_401_UNAUTHORIZED)
         
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+class ForgotPasswordView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = [] # CSRF bypass
+
+    def post(self, request):
+        serializer = ForgotPasswordRequestSerializer(data=request.data)
+        if serializer.is_valid():
+            student_id = serializer.validated_data['student_id']
+            user = User.objects.get(student_id=student_id)
+
+            # OTP তৈরি ও সেভ করা
+            otp = user.generate_otp()
+
+            # ইমেইল পাঠানো
+            subject = 'HSTU Bus Tracker - Password Reset Request'
+            message = f'''প্রিয় {user.full_name},
+
+আপনার পাসওয়ার্ড রিসেট করার জন্য নিচের OTP কোডটি ব্যবহার করুন:
+
+OTP: {otp}
+
+আপনি যদি এই রিকোয়েস্ট না করে থাকেন, তবে এটি ইগনোর করুন।
+
+ধন্যবাদ,
+এডমিন প্যানেল'''
+            
+            email_from = settings.EMAIL_HOST_USER
+            recipient_list = [user.email]
+
+            try:
+                send_mail(subject, message, email_from, recipient_list, fail_silently=False)
+                return Response({
+                    "status": "success",
+                    "message": "আপনার ইমেইলে একটি OTP পাঠানো হয়েছে।",
+                    "student_id": student_id
+                }, status=status.HTTP_200_OK)
+            except Exception as e:
+                return Response({"error": "ইমেইল পাঠাতে সমস্যা হয়েছে। সার্ভার এরর।"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ==========================================
+# 6. RESET PASSWORD - VERIFY OTP & CHANGE
+# ==========================================
+class ResetPasswordView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        if serializer.is_valid():
+            student_id = serializer.validated_data['student_id']
+            otp = serializer.validated_data['otp']
+            new_password = serializer.validated_data['new_password']
+
+            try:
+                user = User.objects.get(student_id=student_id)
+
+                # OTP চেক
+                if user.otp != otp:
+                    return Response({"status": "error", "message": "ভুল OTP কোড!"}, status=status.HTTP_400_BAD_REQUEST)
+
+                # পাসওয়ার্ড চেঞ্জ করা
+                user.set_password(new_password)
+                user.otp = None # OTP ক্লিয়ার করা (নিরাপত্তার জন্য)
+                user.save()
+
+                return Response({
+                    "status": "success",
+                    "message": "পাসওয়ার্ড সফলভাবে পরিবর্তন হয়েছে! এখন লগইন করুন।"
+                }, status=status.HTTP_200_OK)
+
+            except User.DoesNotExist:
+                return Response({"status": "error", "message": "ইউজার পাওয়া যায়নি।"}, status=status.HTTP_404_NOT_FOUND)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

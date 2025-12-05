@@ -72,3 +72,20 @@ class VerifyOTPSerializer(serializers.Serializer):
 class LoginSerializer(serializers.Serializer):
     student_id = serializers.CharField()
     password = serializers.CharField()
+
+
+# accounts/serializers.py - নিচে এই ক্লাসগুলো যোগ করুন
+
+class ForgotPasswordRequestSerializer(serializers.Serializer):
+    student_id = serializers.CharField()
+
+    def validate_student_id(self, value):
+        # চেক করি এই আইডির স্টুডেন্ট আছে কি না
+        if not User.objects.filter(student_id=value).exists():
+            raise serializers.ValidationError("এই স্টুডেন্ট আইডির কোনো একাউন্ট পাওয়া যায়নি।")
+        return value
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    student_id = serializers.CharField()
+    otp = serializers.CharField(max_length=6, min_length=6)
+    new_password = serializers.CharField(min_length=6)
