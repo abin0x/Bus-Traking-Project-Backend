@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django_filters',
     'core',
     'accounts',
+    'lost_and_found',
     'corsheaders',
 
 ]
