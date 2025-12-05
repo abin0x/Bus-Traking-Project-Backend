@@ -5,9 +5,12 @@ from rest_framework.permissions import AllowAny
 from django.contrib.auth import authenticate
 from django.core.mail import send_mail
 from django.conf import settings
-from .serializers import RegistrationSerializer, VerifyOTPSerializer, LoginSerializer, ForgotPasswordRequestSerializer, PasswordResetConfirmSerializer
+from .serializers import RegistrationSerializer, VerifyOTPSerializer, LoginSerializer,  ForgotPasswordRequestSerializer, PasswordResetConfirmSerializer, UserProfileSerializer
 from .data import FACULTY_DEPARTMENT_DATA
 from django.contrib.auth import get_user_model
+from django.contrib.auth import login 
+from rest_framework.permissions import IsAuthenticated
+from rest_framework import generics
 
 User = get_user_model()
 
@@ -127,47 +130,39 @@ class LoginView(APIView):
 
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
-        
         if serializer.is_valid():
             student_id = serializer.validated_data['student_id']
             password = serializer.validated_data['password']
 
-            # Django Authenticate (Username Field = student_id)
             user = authenticate(username=student_id, password=password)
 
             if user is not None:
-                # ১. ভেরিফিকেশন চেক
                 if not user.is_verified:
-                    return Response({
-                        "status": "error",
-                        "message": "আপনার একাউন্ট ভেরিফাইড নয়। দয়া করে OTP ভেরিফাই করুন।"
-                    }, status=status.HTTP_403_FORBIDDEN)
+                    return Response({"status": "error", "message": "Account not verified."}, status=status.HTTP_403_FORBIDDEN)
                 
-                # ২. একটিভ চেক
-                if not user.is_active:
-                    return Response({
-                        "status": "error",
-                        "message": "একাউন্টটি ব্লক বা নিষ্ক্রিয় করা হয়েছে।"
-                    }, status=status.HTTP_403_FORBIDDEN)
+                # [CRITICAL CHANGE] সার্ভারে সেশন তৈরি করা
+                login(request, user)
 
-                # ৩. সফল লগইন
                 return Response({
                     "status": "success",
                     "message": "লগইন সফল হয়েছে!",
                     "user": {
                         "full_name": user.full_name,
-                        "student_id": user.student_id,
-                        "faculty": user.faculty,
-                        "department": user.department
+                        "student_id": user.student_id
                     }
-                    # ভবিষ্যতে এখানে JWT Token (access/refresh) যোগ করবেন
                 }, status=status.HTTP_200_OK)
-
             else:
-                return Response({"status": "error", "message": "ভুল স্টুডেন্ট আইডি অথবা পাসওয়ার্ড।"}, status=status.HTTP_401_UNAUTHORIZED)
-        
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"status": "error", "message": "ভুল আইডি বা পাসওয়ার্ড।"}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response(serializer.errors, status=400)
     
+# ========================================== frofile update api=======================
+class UserProfileView(generics.RetrieveUpdateAPIView):
+    permission_classes = [IsAuthenticated] # শুধু লগইন করা ইউজার এক্সেস পাবে
+    serializer_class = UserProfileSerializer
+
+    def get_object(self):
+        # যে ইউজার রিকোয়েস্ট পাঠাচ্ছে, শুধু তার প্রোফাইল রিটার্ন করবে
+        return self.request.user
 
 class ForgotPasswordView(APIView):
     permission_classes = [AllowAny]

@@ -105,6 +105,9 @@
     <div class="navbar">
         <button class="nav-btn active"><i class="fas fa-map-marked-alt"></i> Live Map</button>
         <button class="nav-btn" onclick="openSchedule()"><i class="far fa-calendar-alt"></i> Schedule</button>
+        <button class="nav-btn" onclick="openProfile()">
+        <i class="fas fa-user-circle"></i> Profile
+    </button>
     </div>
 
     <!-- LEFT SIDEBAR -->
@@ -192,6 +195,62 @@
                         <!-- Data injected via JS -->
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+    <!-- PROFILE MODAL -->
+    <div class="modal-overlay" id="profile-modal">
+        <div class="schedule-box" style="max-width: 500px;">
+            <div class="schedule-header">
+                <h2 class="text-xl font-bold text-gray-800"><i class="fas fa-user-edit text-blue-600 mr-2"></i> Update Profile</h2>
+                <button onclick="closeProfile()" class="text-gray-400 hover:text-red-500 text-xl"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div class="p-6 bg-white overflow-y-auto">
+                <form onsubmit="handleProfileUpdate(event)" class="space-y-4">
+                    
+                    <!-- Read Only ID -->
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 uppercase">Student ID</label>
+                        <input type="text" id="p_student_id" readonly class="w-full p-2 border rounded bg-gray-100 text-gray-500 cursor-not-allowed">
+                    </div>
+
+                    <!-- Editable Fields -->
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 uppercase">Full Name</label>
+                        <input type="text" id="p_name" class="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 outline-none">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 uppercase">Phone</label>
+                            <input type="text" id="p_phone" class="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 uppercase">Batch</label>
+                            <input type="text" id="p_batch" class="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 outline-none">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 uppercase">Email</label>
+                        <input type="email" id="p_email" class="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 outline-none">
+                    </div>
+
+                    <!-- Faculty/Dept (Optional edit) -->
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 uppercase">Faculty</label>
+                        <input type="text" id="p_faculty" class="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 uppercase">Department</label>
+                        <input type="text" id="p_dept" class="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 outline-none">
+                    </div>
+
+                    <button type="submit" id="p_save_btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded transition shadow-lg mt-4">
+                        Save Changes
+                    </button>
+                </form>
             </div>
         </div>
     </div>
@@ -450,6 +509,92 @@
                         tbody.innerHTML += row;
                     });
                 });
+        }
+        // --- CSRF HELPER ---
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // --- PROFILE FUNCTIONS ---
+        function openProfile() {
+            document.getElementById('profile-modal').classList.add('active');
+            fetchProfileData();
+        }
+
+        function closeProfile() {
+            document.getElementById('profile-modal').classList.remove('active');
+        }
+
+        function fetchProfileData() {
+            fetch('/api/auth/profile/')
+                .then(res => {
+                    if (res.status === 403) {
+                        alert("Please login first!");
+                        window.location.href = '/auth/'; // Redirect to login
+                        return null;
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    if (data) {
+                        document.getElementById('p_student_id').value = data.student_id;
+                        document.getElementById('p_name').value = data.full_name;
+                        document.getElementById('p_phone').value = data.phone_number;
+                        document.getElementById('p_email').value = data.email;
+                        document.getElementById('p_batch').value = data.batch;
+                        document.getElementById('p_faculty').value = data.faculty;
+                        document.getElementById('p_dept').value = data.department;
+                    }
+                })
+                .catch(err => console.error(err));
+        }
+
+        function handleProfileUpdate(e) {
+            e.preventDefault();
+            const btn = document.getElementById('p_save_btn');
+            btn.innerText = "Saving...";
+            
+            const payload = {
+                full_name: document.getElementById('p_name').value,
+                phone_number: document.getElementById('p_phone').value,
+                email: document.getElementById('p_email').value,
+                batch: document.getElementById('p_batch').value,
+                faculty: document.getElementById('p_faculty').value,
+                department: document.getElementById('p_dept').value
+            };
+
+            const csrftoken = getCookie('csrftoken');
+
+            fetch('/api/auth/profile/', {
+                method: 'PATCH', // Partial Update
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken 
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(async res => {
+                const data = await res.json();
+                if (res.ok) {
+                    alert("Profile Updated Successfully!");
+                    closeProfile();
+                } else {
+                    alert("Error: " + JSON.stringify(data));
+                }
+            })
+            .catch(() => alert("Network Error"))
+            .finally(() => btn.innerText = "Save Changes");
         }
 
         // Initial Load

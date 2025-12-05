@@ -89,3 +89,14 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     student_id = serializers.CharField()
     otp = serializers.CharField(max_length=6, min_length=6)
     new_password = serializers.CharField(min_length=6)
+
+
+# accounts/serializers.py - ফাইলে নিচের ক্লাসটি যোগ করুন
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        # পাসওয়ার্ড বাদে বাকি সব ফিল্ড যা আপডেট করা যাবে
+        fields = ['full_name', 'student_id', 'email', 'phone_number', 'faculty', 'department', 'batch']
+        # স্টুডেন্ট আইডি কেউ চেঞ্জ করতে পারবে না
+        read_only_fields = ['student_id']
