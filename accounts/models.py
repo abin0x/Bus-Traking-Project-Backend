@@ -42,6 +42,7 @@ class User(AbstractUser):
     faculty = models.CharField(max_length=100)
     department = models.CharField(max_length=100)
     batch = models.CharField(max_length=10)
+    profile_image = models.URLField(max_length=500, blank=True, null=True, help_text="Paste image link here")
     
     otp = models.CharField(max_length=6, blank=True, null=True)
     is_verified = models.BooleanField(default=False)

@@ -97,6 +97,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         # পাসওয়ার্ড বাদে বাকি সব ফিল্ড যা আপডেট করা যাবে
-        fields = ['full_name', 'student_id', 'email', 'phone_number', 'faculty', 'department', 'batch']
+        fields = ['full_name', 'student_id', 'email', 'phone_number', 'faculty', 'department', 'batch','profile_image']
         # স্টুডেন্ট আইডি কেউ চেঞ্জ করতে পারবে না
-        read_only_fields = ['student_id']
+        read_only_fields = ['student_id','batch']
