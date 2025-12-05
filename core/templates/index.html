@@ -262,6 +262,14 @@
                     <button type="submit" id="p_save_btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded transition shadow-lg mt-4">
                         Save Changes
                     </button>
+
+                    <!-- [NEW] LOGOUT BUTTON SECTION -->
+                    <div class="border-t border-gray-100 mt-6 pt-4">
+                        <button type="button" onclick="handleLogout()" class="w-full bg-red-50 text-red-600 hover:bg-red-100 font-bold py-2 rounded transition flex items-center justify-center gap-2">
+                            <i class="fas fa-sign-out-alt"></i> Sign Out
+                        </button>
+                    </div>
+
                 </form>
             </div>
         </div>
@@ -667,6 +675,32 @@
             })
             .catch(() => alert("Network Error"))
             .finally(() => btn.innerText = "Save Changes");
+        }
+        // --- LOGOUT LOGIC ---
+        function handleLogout() {
+            if (!confirm("Are you sure you want to logout?")) return;
+
+            const csrftoken = getCookie('csrftoken');
+
+            fetch('/api/auth/logout/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(res => {
+                if (res.ok) {
+                    // লোকাল স্টোরেজ ক্লিয়ার করা (যদি কিছু রেখে থাকেন)
+                    localStorage.removeItem('user');
+                    
+                    // লগইন পেজে পাঠিয়ে দেওয়া
+                    window.location.href = '/auth/';
+                } else {
+                    alert("Logout failed. Please try again.");
+                }
+            })
+            .catch(err => console.error("Logout Error:", err));
         }
 
         // Initial Load

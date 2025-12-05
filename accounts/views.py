@@ -8,7 +8,7 @@ from django.conf import settings
 from .serializers import RegistrationSerializer, VerifyOTPSerializer, LoginSerializer,  ForgotPasswordRequestSerializer, PasswordResetConfirmSerializer, UserProfileSerializer
 from .data import FACULTY_DEPARTMENT_DATA
 from django.contrib.auth import get_user_model
-from django.contrib.auth import login 
+from django.contrib.auth import login , logout
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import generics
 
@@ -154,6 +154,12 @@ class LoginView(APIView):
             else:
                 return Response({"status": "error", "message": "ভুল আইডি বা পাসওয়ার্ড।"}, status=status.HTTP_401_UNAUTHORIZED)
         return Response(serializer.errors, status=400)
+    
+# ========================================== logout update api=======================
+class LogoutView(APIView):
+    def post(self, request):
+        logout(request) # সার্ভার সেশন মুছে ফেলবে
+        return Response({"message": "Logout successful"}, status=status.HTTP_200_OK)
     
 # ========================================== frofile update api=======================
 class UserProfileView(generics.RetrieveUpdateAPIView):
