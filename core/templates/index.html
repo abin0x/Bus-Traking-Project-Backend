@@ -43,6 +43,7 @@
         .bus-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 15px -3px rgba(0,0,0,0.05); }
         .bus-card.active { border-color: var(--accent); background: #f0f9ff; border-left: 4px solid var(--accent); }
         
+        /* Ghost Mode */
         .bus-card.offline { opacity: 0.6; background: #f8fafc; border-left: 4px solid #94a3b8; filter: grayscale(100%); }
         .bus-card.offline .badge { background: #e2e8f0 !important; color: #64748b !important; }
         
@@ -51,7 +52,7 @@
         .badge-ready { background: #fef9c3; color: #854d0e; }
         .badge-stop { background: #f3e8ff; color: #6b21a8; }
 
-        /* --- RIGHT PANEL (UPDATED STYLE) --- */
+        /* --- RIGHT DETAILS PANEL --- */
         .details-panel { position: absolute; top: 20px; right: 20px; bottom: 20px; width: 380px; background: var(--surface); border-radius: 16px; box-shadow: -5px 0 30px rgba(0,0,0,0.1); z-index: 1001; transform: translateX(120%); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); display: flex; flex-direction: column; border: 1px solid var(--border); overflow: hidden; }
         .details-panel.open { transform: translateX(0); }
         
@@ -72,16 +73,15 @@
         .step-content p { font-size: 0.75rem; color: var(--text-sub); margin: 2px 0 0 0; }
         .timeline-step.completed h4 { text-decoration: line-through; color: #94a3b8; }
 
-        /* --- SCHEDULE MODAL --- */
+        /* --- MODAL STYLES --- */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); z-index: 3000; display: none; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s; }
         .modal-overlay.active { display: flex; opacity: 1; }
-        
         .schedule-box { background: white; width: 90%; max-width: 800px; max-height: 85vh; border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.2); display: flex; flex-direction: column; overflow: hidden; transform: translateY(20px); transition: transform 0.3s; }
         .modal-overlay.active .schedule-box { transform: translateY(0); }
-        
         .schedule-header { padding: 20px 30px; background: #f8fafc; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
         .schedule-body { padding: 30px; overflow-y: auto; }
         
+        /* Table Styles */
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; padding: 12px; font-size: 0.8rem; text-transform: uppercase; color: var(--text-sub); border-bottom: 2px solid var(--border); }
         td { padding: 16px 12px; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; color: var(--text-main); }
@@ -105,20 +105,19 @@
     <div class="navbar">
         <button class="nav-btn active"><i class="fas fa-map-marked-alt"></i> Live Map</button>
         <button class="nav-btn" onclick="openSchedule()"><i class="far fa-calendar-alt"></i> Schedule</button>
-        <button class="nav-btn" onclick="openProfile()">
-        <i class="fas fa-user-circle"></i> Profile
-    </button>
+        <button class="nav-btn" onclick="openProfile()"><i class="fas fa-user-circle"></i> Profile</button>
     </div>
 
     <!-- LEFT SIDEBAR -->
     <div class="sidebar">
         <div class="sidebar-header">
             <div class="brand">
-                <i class="fas fa-bus-alt text-blue-600"></i> FLEET<span style="font-weight:400;">TRACK</span>
+                <i class="fas fa-bus-alt text-blue-600 mr-2"></i> FLEET<span style="font-weight:400;">TRACK</span>
             </div>
             <div class="flex gap-4 mt-3 text-[10px] uppercase font-bold text-gray-400">
                 <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-green-500"></div> Active</span>
                 <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-amber-400"></div> Ready</span>
+                <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-gray-400"></div> Lost</span>
             </div>
         </div>
         <div class="bus-list" id="bus-list-content">
@@ -137,7 +136,6 @@
             <div class="flex items-center gap-2 text-sm opacity-90" id="d-route-info">
                 <span>Start</span> <i class="fas fa-arrow-right text-xs"></i> <span>End</span>
             </div>
-            
             <div class="grid grid-cols-2 gap-4 mt-6">
                 <div class="bg-white/10 rounded-lg p-3 backdrop-blur-sm">
                     <div class="text-[10px] uppercase opacity-70 mb-1">Speed</div>
@@ -149,12 +147,9 @@
                 </div>
             </div>
         </div>
-
         <div class="timeline-container">
             <div class="text-xs font-bold uppercase text-gray-400 mb-6 tracking-widest">Live Route Progress</div>
-            <div id="timeline-root">
-                <!-- Timeline items injected here -->
-            </div>
+            <div id="timeline-root"></div>
         </div>
     </div>
 
@@ -166,7 +161,6 @@
                 <button onclick="closeSchedule()" class="text-gray-400 hover:text-red-500 text-xl"><i class="fas fa-times"></i></button>
             </div>
             
-            <!-- Filters -->
             <div class="px-8 py-4 bg-gray-50 border-b border-gray-100 flex gap-4">
                 <select id="day-filter" class="px-3 py-2 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="fetchSchedule()">
                     <option value="">All Days</option>
@@ -185,20 +179,16 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Time</th>
-                            <th>Route</th>
-                            <th>Trip Name</th>
-                            <th>Bus No</th>
+                            <th>Time</th><th>Route</th><th>Trip Name</th><th>Bus No</th>
                         </tr>
                     </thead>
-                    <tbody id="schedule-table-body">
-                        <!-- Data injected via JS -->
-                    </tbody>
+                    <tbody id="schedule-table-body"></tbody>
                 </table>
             </div>
         </div>
     </div>
-    <!-- PROFILE MODAL -->
+
+    <!-- PROFILE MODAL (UPDATED) -->
     <div class="modal-overlay" id="profile-modal">
         <div class="schedule-box" style="max-width: 500px;">
             <div class="schedule-header">
@@ -206,16 +196,39 @@
                 <button onclick="closeProfile()" class="text-gray-400 hover:text-red-500 text-xl"><i class="fas fa-times"></i></button>
             </div>
             
-            <div class="p-6 bg-white overflow-y-auto">
+            <div class="p-6 bg-white overflow-y-auto" style="max-height: 80vh;">
                 <form onsubmit="handleProfileUpdate(event)" class="space-y-4">
                     
-                    <!-- Read Only ID -->
-                    <div>
-                        <label class="text-xs font-bold text-gray-500 uppercase">Student ID</label>
-                        <input type="text" id="p_student_id" readonly class="w-full p-2 border rounded bg-gray-100 text-gray-500 cursor-not-allowed">
+                    <!-- 1. Profile Picture URL Input -->
+                    <div class="flex flex-col items-center gap-4 mb-6">
+                        <img id="p_preview" src="https://via.placeholder.com/150" 
+                             class="w-24 h-24 rounded-full object-cover border-4 border-gray-100 shadow-md"
+                             onerror="this.src='https://via.placeholder.com/150?text=Error'">
+                        
+                        <div class="w-full">
+                            <label class="text-xs font-bold text-gray-500 uppercase">Profile Picture URL</label>
+                            <div class="flex gap-2">
+                                <input type="url" id="p_image_url" placeholder="Paste image link (https://...)" 
+                                       oninput="previewImageFromUrl()"
+                                       class="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 outline-none text-sm text-gray-600">
+                            </div>
+                            <p class="text-[10px] text-gray-400 mt-1">Paste a direct link to your photo (Imgur/Facebook)</p>
+                        </div>
                     </div>
 
-                    <!-- Editable Fields -->
+                    <!-- 2. Read Only Fields -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 uppercase">Student ID</label>
+                            <input type="text" id="p_student_id" readonly class="w-full p-2 border rounded bg-gray-100 text-gray-500 cursor-not-allowed">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 uppercase">Batch</label>
+                            <input type="text" id="p_batch" readonly class="w-full p-2 border rounded bg-gray-100 text-gray-500 cursor-not-allowed">
+                        </div>
+                    </div>
+
+                    <!-- 3. Editable Personal Info -->
                     <div>
                         <label class="text-xs font-bold text-gray-500 uppercase">Full Name</label>
                         <input type="text" id="p_name" class="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 outline-none">
@@ -227,27 +240,26 @@
                             <input type="text" id="p_phone" class="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 outline-none">
                         </div>
                         <div>
-                            <label class="text-xs font-bold text-gray-500 uppercase">Batch</label>
-                            <input type="text" id="p_batch" class="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 outline-none">
+                            <label class="text-xs font-bold text-gray-500 uppercase">Email</label>
+                            <input type="email" id="p_email" class="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 outline-none">
                         </div>
                     </div>
 
-                    <div>
-                        <label class="text-xs font-bold text-gray-500 uppercase">Email</label>
-                        <input type="email" id="p_email" class="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 outline-none">
-                    </div>
-
-                    <!-- Faculty/Dept (Optional edit) -->
+                    <!-- 4. Dropdowns for Faculty & Dept -->
                     <div>
                         <label class="text-xs font-bold text-gray-500 uppercase">Faculty</label>
-                        <input type="text" id="p_faculty" class="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 outline-none">
+                        <select id="p_faculty" onchange="loadProfileDepartments()" class="w-full p-2 border rounded bg-white focus:ring-1 focus:ring-blue-500 outline-none text-sm">
+                            <!-- JS Populated -->
+                        </select>
                     </div>
                     <div>
                         <label class="text-xs font-bold text-gray-500 uppercase">Department</label>
-                        <input type="text" id="p_dept" class="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 outline-none">
+                        <select id="p_dept" class="w-full p-2 border rounded bg-white focus:ring-1 focus:ring-blue-500 outline-none text-sm">
+                            <!-- JS Populated -->
+                        </select>
                     </div>
 
-                    <button type="submit" id="p_save_btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded transition shadow-lg mt-4">
+                    <button type="submit" id="p_save_btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded transition shadow-lg mt-4">
                         Save Changes
                     </button>
                 </form>
@@ -258,16 +270,17 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <script>
-        // --- MAP INIT ---
+        // --- CONFIG ---
         const map = L.map('map-container', { zoomControl: false }).setView([23.8103, 90.4125], 13);
         L.control.zoom({ position: 'topright' }).addTo(map);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '© CARTO', maxZoom: 20 }).addTo(map);
 
-        // --- STATE ---
+        // --- GLOBAL VARIABLES ---
         const markers = {};
         const busesData = {};
         let globalStops = [];
         let selectedBusId = null;
+        let facultyData = {}; // Store faculty list
 
         // --- FETCH STOPS ---
         fetch('/api/stops/')
@@ -300,7 +313,6 @@
             }
         };
 
-        // --- UPDATE LOGIC ---
         function updateBusState(bus) {
             bus.client_time = bus.is_live ? (Date.now()/1000) : (bus.last_seen || Date.now()/1000);
 
@@ -331,16 +343,19 @@
             if (bus.at_stop) color = '#7c3aed';
             if (bus.trip_status === 'READY') color = '#eab308';
 
-            const iconHtml = `<div class="w-8 h-8 rounded-full border-2 border-white shadow-lg flex items-center justify-center text-white text-xs transition-all duration-300" style="background:${color}">
-                <i class="fas fa-bus"></i>
+            const iconHtml = `<div class="pro-marker" style="width:36px; height:36px; background:${color}; position:relative;">
+                <div class="marker-arrow" style="border-bottom-color:${color};"></div>
+                <i class="fas fa-bus text-sm"></i>
             </div>`;
-            const icon = L.divIcon({ html: iconHtml, className: 'bg-transparent', iconSize: [32, 32] });
+            const icon = L.divIcon({ html: iconHtml, className: 'bg-transparent', iconSize: [36, 36], iconAnchor: [18, 36] });
 
             if (markers[bus.id]) {
                 markers[bus.id].setLatLng([bus.lat, bus.lng]).setIcon(icon);
-                // Remove grayscale filter if online
                 const el = markers[bus.id].getElement();
-                if(el) el.style.filter = 'none';
+                if(el) {
+                    const inner = el.querySelector('.pro-marker');
+                    if(inner) inner.classList.remove('offline-marker');
+                }
             } else {
                 const marker = L.marker([bus.lat, bus.lng], { icon: icon }).addTo(map);
                 marker.on('click', () => selectBus(bus.id));
@@ -359,7 +374,7 @@
 
             let depText = '';
             if (bus.trip_status === 'READY' && bus.next_departure) {
-                depText = `<div class="mt-2 text-xs font-semibold text-amber-600 flex items-center gap-1"><i class="far fa-clock"></i> ${bus.next_departure}</div>`;
+                depText = `<div class="mt-2 text-xs font-bold text-amber-600 flex items-center gap-1"><i class="far fa-clock"></i> ${bus.next_departure}</div>`;
             }
 
             const html = `
@@ -410,13 +425,19 @@
         function markOffline(id) {
             const card = document.getElementById(`card-${id}`);
             if (card) card.classList.add('offline');
-            if (markers[id] && markers[id].getElement()) markers[id].getElement().style.filter = 'grayscale(100%)';
+            if (markers[id] && markers[id].getElement()) {
+                const inner = markers[id].getElement().querySelector('.pro-marker');
+                if(inner) inner.classList.add('offline-marker');
+            }
         }
 
         function markOnline(id) {
             const card = document.getElementById(`card-${id}`);
             if (card) card.classList.remove('offline');
-            if (markers[id] && markers[id].getElement()) markers[id].getElement().style.filter = 'none';
+            if (markers[id] && markers[id].getElement()) {
+                const inner = markers[id].getElement().querySelector('.pro-marker');
+                if(inner) inner.classList.remove('offline-marker');
+            }
         }
 
         // --- DETAILS PANEL ---
@@ -447,7 +468,6 @@
             if (bus.at_stop) st = 'AT STATION';
             document.getElementById('d-status').innerText = st;
 
-            // Render Timeline
             const container = document.getElementById('timeline-root');
             const stops = globalStops.filter(s => s.route === bus.route);
             const dir = bus.direction_status;
@@ -510,7 +530,8 @@
                     });
                 });
         }
-        // --- CSRF HELPER ---
+
+        // --- PROFILE LOGIC ---
         function getCookie(name) {
             let cookieValue = null;
             if (document.cookie && document.cookie !== '') {
@@ -526,9 +547,22 @@
             return cookieValue;
         }
 
-        // --- PROFILE FUNCTIONS ---
-        function openProfile() {
+        function previewImageFromUrl() {
+            const url = document.getElementById('p_image_url').value;
+            const preview = document.getElementById('p_preview');
+            if (url) preview.src = url;
+            else preview.src = "https://via.placeholder.com/150?text=No+Link";
+        }
+
+        async function openProfile() {
             document.getElementById('profile-modal').classList.add('active');
+            if (Object.keys(facultyData).length === 0) await loadFacultyData(); 
+            
+            const facSelect = document.getElementById('p_faculty');
+            facSelect.innerHTML = '<option value="">Select Faculty</option>';
+            Object.keys(facultyData).forEach(fac => {
+                facSelect.innerHTML += `<option value="${fac}">${fac}</option>`;
+            });
             fetchProfileData();
         }
 
@@ -536,12 +570,21 @@
             document.getElementById('profile-modal').classList.remove('active');
         }
 
+        async function loadFacultyData() {
+            try {
+                const res = await fetch('/api/auth/faculty-data/');
+                facultyData = await res.json();
+            } catch (err) {
+                console.error("Failed to load faculty data");
+            }
+        }
+
         function fetchProfileData() {
             fetch('/api/auth/profile/')
                 .then(res => {
                     if (res.status === 403) {
                         alert("Please login first!");
-                        window.location.href = '/auth/'; // Redirect to login
+                        window.location.href = '/auth/'; 
                         return null;
                     }
                     return res.json();
@@ -553,11 +596,40 @@
                         document.getElementById('p_phone').value = data.phone_number;
                         document.getElementById('p_email').value = data.email;
                         document.getElementById('p_batch').value = data.batch;
-                        document.getElementById('p_faculty').value = data.faculty;
-                        document.getElementById('p_dept').value = data.department;
+                        
+                        const imgUrl = data.profile_image || "";
+                        document.getElementById('p_image_url').value = imgUrl;
+                        if (imgUrl) document.getElementById('p_preview').src = imgUrl;
+                        else document.getElementById('p_preview').src = "https://via.placeholder.com/150?text=No+Img";
+
+                        const facSelect = document.getElementById('p_faculty');
+                        const deptSelect = document.getElementById('p_dept');
+                        facSelect.value = data.faculty;
+
+                        if (data.faculty && facultyData[data.faculty]) {
+                            deptSelect.innerHTML = '';
+                            facultyData[data.faculty].forEach(dept => {
+                                deptSelect.innerHTML += `<option value="${dept}">${dept}</option>`;
+                            });
+                            deptSelect.value = data.department;
+                        }
                     }
                 })
                 .catch(err => console.error(err));
+        }
+
+        function loadProfileDepartments() {
+            const faculty = document.getElementById('p_faculty').value;
+            const deptSelect = document.getElementById('p_dept');
+            deptSelect.innerHTML = '<option value="">Select Department</option>';
+            if (faculty && facultyData[faculty]) {
+                facultyData[faculty].forEach(dept => {
+                    const option = document.createElement('option');
+                    option.value = dept;
+                    option.innerText = dept;
+                    deptSelect.appendChild(option);
+                });
+            }
         }
 
         function handleProfileUpdate(e) {
@@ -569,15 +641,15 @@
                 full_name: document.getElementById('p_name').value,
                 phone_number: document.getElementById('p_phone').value,
                 email: document.getElementById('p_email').value,
-                batch: document.getElementById('p_batch').value,
                 faculty: document.getElementById('p_faculty').value,
-                department: document.getElementById('p_dept').value
+                department: document.getElementById('p_dept').value,
+                profile_image: document.getElementById('p_image_url').value
             };
 
             const csrftoken = getCookie('csrftoken');
 
             fetch('/api/auth/profile/', {
-                method: 'PATCH', // Partial Update
+                method: 'PATCH',
                 headers: { 
                     'Content-Type': 'application/json',
                     'X-CSRFToken': csrftoken 
@@ -590,7 +662,7 @@
                     alert("Profile Updated Successfully!");
                     closeProfile();
                 } else {
-                    alert("Error: " + JSON.stringify(data));
+                    alert("Error: Check inputs");
                 }
             })
             .catch(() => alert("Network Error"))
