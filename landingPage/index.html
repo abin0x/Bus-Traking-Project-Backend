@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HSTU বাস ট্র্যাকার - স্মার্ট ট্রান্সপোর্ট</title>
+    <title>HSTU বাস ট্র্যাকার - স্মার্ট ট্রান্সপোর্ট সলিউশন</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -11,8 +11,8 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Google Fonts (বাংলা ফন্ট) -->
-    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <script>
         tailwind.config = {
@@ -23,6 +23,7 @@
                         'bus-blue': '#1E88E5',
                         'accent': '#FFD700',
                         'tech-dark': '#0f172a',
+                        'alert-red': '#E53935',
                     },
                     fontFamily: {
                         sans: ['Hind Siliguri', 'sans-serif'],
@@ -38,28 +39,59 @@
             background-size: cover;
             background-position: center;
         }
-        .mockup-shadow {
-            filter: drop-shadow(0 20px 30px rgba(0,0,0,0.5));
+        /* Realistic Phone Mockup CSS */
+        .phone-frame {
+            border: 14px solid #1f2937; /* Dark Gray Bezel */
+            border-radius: 40px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+            background: #fff;
+        }
+        .phone-notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 25px;
+            background: #1f2937;
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 12px;
+            z-index: 30;
+        }
+        .map-pattern {
+            background-color: #e5e7eb;
+            background-image: 
+                linear-gradient(#d1d5db 1px, transparent 1px),
+                linear-gradient(90deg, #d1d5db 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        .hover-card-up:hover {
+            transform: translateY(-5px);
         }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans">
 
     <!-- Navbar -->
-    <nav class="fixed w-full z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100">
+    <nav class="fixed w-full z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100 transition-all duration-300">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
                 <div class="flex items-center gap-2">
                     <div class="text-2xl text-bus-purple font-bold flex items-center gap-2">
                         <i class="fa-solid fa-bus-simple"></i> 
                         <span>HSTU<span class="text-bus-blue">Track</span></span>
                     </div>
                 </div>
+                <!-- Desktop Menu -->
                 <div class="hidden md:flex space-x-8">
                     <a href="#features" class="text-gray-700 hover:text-bus-purple font-medium transition">ফিচার</a>
-                    <a href="#device" class="text-gray-700 hover:text-bus-purple font-medium transition">ডিভাইস</a>
-                    <a href="#admin" class="text-gray-700 hover:text-bus-purple font-medium transition">অ্যাডমিন</a>
+                    <a href="#technology" class="text-gray-700 hover:text-bus-purple font-medium transition">প্রযুক্তি</a>
+                    <a href="#lost-found" class="text-gray-700 hover:text-bus-purple font-medium transition">হারানো বিজ্ঞপ্তি</a>
                 </div>
+                <!-- Badge -->
                 <span class="bg-purple-100 text-bus-purple px-4 py-1.5 rounded-full text-sm font-bold border border-purple-200 animate-pulse">
                     Coming Soon
                 </span>
@@ -68,60 +100,83 @@
     </nav>
 
     <!-- Hero Section -->
-    <section class="hero-bg min-h-screen flex items-center pt-24 pb-12 relative overflow-hidden">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center w-full">
-            <div class="md:w-1/2 text-white text-center md:text-left z-10 mb-12 md:mb-0">
-                <span class="bg-accent text-bus-purple px-4 py-1 rounded-full text-sm font-bold uppercase tracking-wider mb-5 inline-block shadow-lg">
-                    অফিশিয়াল প্রজেক্ট
-                </span>
-                <h1 class="text-4xl md:text-6xl font-bold leading-tight mb-4">
-                    বাস এখন কোথায়?<br>
-                    <span class="text-blue-200 text-3xl md:text-5xl">জানুন এক ক্লিকেই</span>
+    <section class="hero-bg min-h-screen flex items-center pt-28 pb-16 relative overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center w-full gap-12">
+            
+            <!-- Left Text Content -->
+            <div class="md:w-1/2 text-white text-center md:text-left z-10">
+                <div class="inline-flex items-center gap-2 bg-white/10 border border-white/20 px-4 py-1 rounded-full text-sm font-bold uppercase tracking-wider mb-6 backdrop-blur-md">
+                    <span class="w-2 h-2 bg-accent rounded-full animate-ping"></span> অফিশিয়াল প্রজেক্ট
+                </div>
+                <h1 class="text-4xl md:text-6xl font-bold leading-tight mb-6">
+                    ক্যাম্পাস লাইফ হোক<br>
+                    <span class="text-accent">স্মার্ট ও নিরাপদ</span>
                 </h1>
-                <p class="text-gray-100 text-lg mb-8 max-w-lg mx-auto md:mx-0 leading-relaxed">
-                    ১২,০০০+ ছাত্রছাত্রীর সুবিধার্থে তৈরি হাবিপ্রবি'র নিজস্ব ট্র্যাকিং সিস্টেম। বাসের জন্য আর রাস্তায় দাঁড়িয়ে থাকতে হবে না।
+                <p class="text-blue-100 text-lg mb-8 max-w-lg mx-auto md:mx-0 leading-relaxed font-light">
+                    বাসের জন্য অপেক্ষা করার দিন শেষ। রিয়েল-টাইম ট্র্যাকিং, স্মার্ট শিডিউল এবং হারানো জিনিসের খোঁজ—সব এখন এক অ্যাপেই।
                 </p>
-                <div class="flex flex-col sm:flex-row gap-5 justify-center md:justify-start">
-                    <button class="bg-white text-bus-purple px-8 py-4 rounded-xl font-bold hover:bg-gray-100 transition shadow-lg flex items-center justify-center gap-3">
-                        <i class="fa-brands fa-android text-2xl"></i> অ্যাপ ডাউনলোড (শীঘ্রই)
+                <div class="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+                    <button class="bg-white text-bus-purple px-8 py-4 rounded-xl font-bold hover:bg-gray-100 transition shadow-lg flex items-center justify-center gap-3 group">
+                        <i class="fa-brands fa-google-play text-xl group-hover:scale-110 transition"></i> প্লে স্টোর (শীঘ্রই)
                     </button>
-                    <a href="#device" class="border border-white/40 text-white px-8 py-4 rounded-xl font-bold hover:bg-white/10 transition flex items-center justify-center gap-2">
-                        আমাদের প্রযুক্তি <i class="fa-solid fa-arrow-down"></i>
+                    <a href="#features" class="bg-bus-purple/50 border border-white/30 backdrop-blur-md text-white px-8 py-4 rounded-xl font-bold hover:bg-bus-purple/70 transition flex items-center justify-center gap-2">
+                        ফিচার দেখুন <i class="fa-solid fa-arrow-down animate-bounce"></i>
                     </a>
                 </div>
             </div>
 
-            <!-- Phone Mockup -->
-            <div class="md:w-1/2 flex justify-center z-10 relative">
-                <div class="relative w-72 md:w-80 h-[580px] bg-gray-900 rounded-[3rem] border-8 border-gray-800 overflow-hidden mockup-shadow transform rotate-[-3deg] hover:rotate-0 transition duration-500">
-                    <div class="bg-gray-50 w-full h-full flex flex-col relative">
-                        <div class="absolute inset-0 bg-blue-50" style="background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 20px 20px;"></div>
+            <!-- Right Mobile Mockup (Realistic Design) -->
+            <div class="md:w-1/2 flex justify-center z-10">
+                <div class="phone-frame w-[300px] h-[600px] shadow-2xl transform rotate-[-3deg] hover:rotate-0 transition duration-700 ease-out">
+                    <!-- Notch -->
+                    <div class="phone-notch"></div>
+                    
+                    <!-- Screen Content -->
+                    <div class="w-full h-full flex flex-col bg-white relative">
                         
-                        <div class="absolute top-1/3 left-1/2 transform -translate-x-1/2">
-                            <div class="relative">
-                                <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg border-2 border-bus-purple z-20 relative">
-                                    <i class="fa-solid fa-bus text-bus-purple text-xl"></i>
-                                </div>
-                                <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-3 h-3 bg-bus-purple rotate-45"></div>
-                                <div class="absolute top-0 left-0 w-12 h-12 bg-bus-purple rounded-full animate-ping opacity-20"></div>
+                        <!-- Map Layer -->
+                        <div class="absolute inset-0 map-pattern opacity-60"></div>
+                        
+                        <!-- Route Line (Visual) -->
+                        <svg class="absolute inset-0 w-full h-full pointer-events-none z-0" style="opacity: 0.6">
+                            <path d="M100 0 V 300 Q 100 350 200 400" stroke="#1E88E5" stroke-width="6" fill="none" stroke-linecap="round"/>
+                        </svg>
+
+                        <!-- Bus Marker (Floating) -->
+                        <div class="absolute top-[45%] left-[30%] z-10 transform translate-x-12">
+                            <div class="w-10 h-10 bg-bus-purple rounded-full border-4 border-white shadow-xl flex items-center justify-center animate-bounce">
+                                <i class="fa-solid fa-bus text-white text-sm"></i>
                             </div>
-                            <div class="bg-white px-2 py-1 rounded text-xs font-bold shadow text-center mt-2 whitespace-nowrap">
-                                ক্যাম্পাস ১
+                            <div class="bg-gray-800 text-white text-[10px] px-2 py-1 rounded shadow mt-1 whitespace-nowrap text-center">
+                                বাস B-24 <br> <span class="text-green-400">৬০ কি.মি/ঘ</span>
                             </div>
                         </div>
 
-                        <div class="absolute bottom-0 w-full bg-white rounded-t-3xl p-5 shadow-[0_-5px_30px_rgba(0,0,0,0.1)]">
-                            <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-4"></div>
-                            <h3 class="font-bold text-lg mb-1">গন্তব্য: ক্যাম্পাস</h3>
-                            <div class="flex justify-between items-center mt-4">
-                                <div class="text-center">
-                                    <div class="text-xs text-gray-500">দূরত্ব</div>
-                                    <div class="font-bold text-bus-blue">৫.২ কি.মি</div>
+                        <!-- App UI Overlay (Top) -->
+                        <div class="absolute top-0 w-full p-4 pt-8 bg-gradient-to-b from-white/90 to-transparent z-20">
+                            <div class="flex justify-between items-center bg-white p-3 rounded-xl shadow-sm border border-gray-100">
+                                <i class="fa-solid fa-bars text-gray-500"></i>
+                                <span class="font-bold text-bus-purple">HSTU Track</span>
+                                <i class="fa-solid fa-bell text-gray-500"></i>
+                            </div>
+                        </div>
+
+                        <!-- App UI Overlay (Bottom Card) -->
+                        <div class="absolute bottom-4 left-4 right-4 bg-white p-4 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] z-20 border border-gray-100">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h3 class="font-bold text-gray-800">ক্যাম্পাস ট্রিপ</h3>
+                                    <p class="text-xs text-green-600 font-bold mt-1">● অন টাইম</p>
                                 </div>
-                                <div class="text-center border-x px-6">
-                                    <div class="text-xs text-gray-500">সময় বাকি</div>
-                                    <div class="font-bold text-green-600 text-xl">১২ মিনিট</div>
+                                <div class="bg-blue-50 px-3 py-1 rounded-lg">
+                                    <span class="block text-xs text-gray-500 text-center">ETA</span>
+                                    <span class="block font-bold text-bus-blue">০৮ মি.</span>
                                 </div>
+                            </div>
+                            <div class="mt-4 pt-3 border-t border-gray-100 flex justify-between text-xs text-gray-500">
+                                <span><i class="fa-solid fa-location-dot text-bus-purple"></i> দশমাইল মোড়</span>
+                                <span><i class="fa-solid fa-arrow-right"></i></span>
+                                <span><i class="fa-solid fa-school"></i> ক্যাম্পাস</span>
                             </div>
                         </div>
                     </div>
@@ -130,114 +185,208 @@
         </div>
     </section>
 
-    <!-- Features Section -->
+    <!-- Features Grid -->
     <section id="features" class="py-20 bg-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-16">
-                <span class="text-bus-blue font-bold tracking-wider text-sm">স্টুডেন্ট ফিচারস</span>
-                <h2 class="text-3xl font-bold text-bus-purple mt-2">আপনার যাতায়াত হবে সহজ</h2>
+                <span class="text-bus-blue font-bold tracking-wider text-sm">ফিচারসমূহ</span>
+                <h2 class="text-3xl font-bold text-gray-900 mt-2">আপনার যাতায়াত হবে আরও সহজ</h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <!-- Feature 1 -->
+                <div class="bg-purple-50 p-6 rounded-2xl border border-purple-100 hover:shadow-xl transition duration-300 hover-card-up group">
+                    <div class="w-14 h-14 bg-white rounded-xl flex items-center justify-center text-bus-purple text-2xl mb-4 shadow-sm group-hover:scale-110 transition">
+                        <i class="fa-solid fa-map-location-dot"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">লাইভ ট্র্যাকিং</h3>
+                    <p class="text-sm text-gray-600">বাস এখন ঠিক কোথায়? ম্যাপের ওপর বাসগুলোর চলাফেরা দেখুন সরাসরি।</p>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 hover:shadow-xl transition duration-300 hover-card-up group">
+                    <div class="w-14 h-14 bg-white rounded-xl flex items-center justify-center text-bus-blue text-2xl mb-4 shadow-sm group-hover:scale-110 transition">
+                        <i class="fa-solid fa-clock"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">স্মার্ট ETA</h3>
+                    <p class="text-sm text-gray-600">জ্যাম বা দূরত্ব হিসাব করে বাস পৌঁছানোর সঠিক সময় অ্যাপে দেখা যাবে।</p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="bg-yellow-50 p-6 rounded-2xl border border-yellow-100 hover:shadow-xl transition duration-300 hover-card-up group">
+                    <div class="w-14 h-14 bg-white rounded-xl flex items-center justify-center text-yellow-600 text-2xl mb-4 shadow-sm group-hover:scale-110 transition">
+                        <i class="fa-regular fa-calendar-check"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">বাস শিডিউল</h3>
+                    <p class="text-sm text-gray-600">সকল রুটের বাসের আপডেটেড সময়সূচি এবং স্ট্যাটাস অ্যাপে সবসময় পাওয়া যাবে।</p>
+                </div>
+
+                <!-- Feature 4 -->
+                <div class="bg-green-50 p-6 rounded-2xl border border-green-100 hover:shadow-xl transition duration-300 hover-card-up group">
+                    <div class="w-14 h-14 bg-white rounded-xl flex items-center justify-center text-green-600 text-2xl mb-4 shadow-sm group-hover:scale-110 transition">
+                        <i class="fa-solid fa-bell"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">নোটিফিকেশন</h3>
+                    <p class="text-sm text-gray-600">বাস ছাড়ার আগে বা স্টপেজে আসার সাথে সাথে নোটিফিকেশন পাবেন।</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- IoT Technology Section (Designed Cards) -->
+    <section id="technology" class="py-20 bg-gray-50 relative">
+        <!-- Background blob -->
+        <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
+            <div class="absolute -top-40 -right-40 w-96 h-96 bg-bus-purple/5 rounded-full blur-3xl"></div>
+            <div class="absolute top-40 -left-20 w-72 h-72 bg-bus-blue/5 rounded-full blur-3xl"></div>
+        </div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="text-center mb-16">
+                <span class="bg-white border border-gray-200 text-gray-600 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">IoT পাওয়ারড</span>
+                <h2 class="text-3xl font-bold text-gray-900 mt-4">আমাদের প্রযুক্তির পেছনের গল্প</h2>
+                <p class="text-gray-600 mt-2">সাধারণ জিপিএস নয়, আমরা ব্যবহার করছি কাস্টম বিল্ট হার্ডওয়্যার</p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div class="bg-gray-50 p-8 rounded-2xl border border-gray-100 text-center hover:shadow-lg transition">
-                    <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center text-bus-purple text-2xl mx-auto mb-6">
-                        <i class="fa-solid fa-map-location-dot"></i>
+                <!-- Tech Card 1 -->
+                <div class="bg-white rounded-xl p-8 shadow-lg border-t-4 border-bus-purple hover:shadow-2xl transition duration-300 group">
+                    <div class="w-16 h-16 bg-purple-50 rounded-full flex items-center justify-center text-bus-purple text-2xl mb-6 group-hover:bg-bus-purple group-hover:text-white transition">
+                        <i class="fa-solid fa-microchip"></i>
                     </div>
-                    <h3 class="font-bold text-xl mb-3">লাইভ ট্র্যাকিং</h3>
-                    <p class="text-gray-600">বাস এখন ঠিক কোথায়? ম্যাপের ওপর বাসগুলোর চলাফেরা দেখুন সরাসরি।</p>
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">কাস্টম ডিভাইস</h3>
+                    <p class="text-gray-600 leading-relaxed">প্রতিটি বাসে আমাদের নিজস্ব ডেভেলপ করা  কন্ট্রোলার বসানো হয়েছে যা নির্ভুল ডাটা প্রসেস করে।</p>
                 </div>
 
-                <div class="bg-gray-50 p-8 rounded-2xl border border-gray-100 text-center hover:shadow-lg transition">
-                    <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-bus-blue text-2xl mx-auto mb-6">
-                        <i class="fa-solid fa-clock"></i>
+                <!-- Tech Card 2 -->
+                <div class="bg-white rounded-xl p-8 shadow-lg border-t-4 border-bus-blue hover:shadow-2xl transition duration-300 group">
+                    <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center text-bus-blue text-2xl mb-6 group-hover:bg-bus-blue group-hover:text-white transition">
+                        <i class="fa-solid fa-satellite-dish"></i>
                     </div>
-                    <h3 class="font-bold text-xl mb-3">সঠিক সময় (ETA)</h3>
-                    <p class="text-gray-600">জ্যাম বা দূরত্ব অনুযায়ী বাস আসতে কত মিনিট লাগবে তা অ্যাপ জানিয়ে দেবে।</p>
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">4G কানেক্টিভিটি</h3>
+                    <p class="text-gray-600 leading-relaxed"><span class="font-semibold text-bus-blue">ডিভাইস</span> মডিউলের মাধ্যমে হাই-স্পিড নেটওয়ার্কে ডাটা পাঠানো হয়, তাই লোকেশন আপডেট হয় মুহূর্তেই।</p>
                 </div>
 
-                <div class="bg-gray-50 p-8 rounded-2xl border border-gray-100 text-center hover:shadow-lg transition">
-                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-green-600 text-2xl mx-auto mb-6">
-                        <i class="fa-solid fa-shield-halved"></i>
+                <!-- Tech Card 3 -->
+                <div class="bg-white rounded-xl p-8 shadow-lg border-t-4 border-accent hover:shadow-2xl transition duration-300 group">
+                    <div class="w-16 h-16 bg-yellow-50 rounded-full flex items-center justify-center text-yellow-600 text-2xl mb-6 group-hover:bg-yellow-500 group-hover:text-white transition">
+                        <i class="fa-solid fa-server"></i>
                     </div>
-                    <h3 class="font-bold text-xl mb-3">সিকিউর অ্যাক্সেস</h3>
-                    <p class="text-gray-600">শুধুমাত্র হাবিপ্রবি'র শিক্ষার্থীরা তাদের আইডি ব্যবহার করে লগইন করতে পারবে।</p>
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">রিয়েল-টাইম টেকনোলজি</h3>
+                    <p class="text-gray-600 leading-relaxed">Wরিয়েল-টাইম টেকনোলজি ব্যবহারের কারণে ম্যাপে বাসের মুভমেন্ট একদম স্মুথ দেখায়, কোনো ল্যাগ ছাড়াই।</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Device Info Section (Simplified) -->
-    <section id="device" class="py-20 bg-tech-dark text-white relative overflow-hidden">
-        <!-- Background Decoration -->
-        <div class="absolute top-0 right-0 w-64 h-64 bg-bus-blue opacity-10 rounded-full blur-3xl -mr-10 -mt-10"></div>
-        <div class="absolute bottom-0 left-0 w-64 h-64 bg-bus-purple opacity-10 rounded-full blur-3xl -ml-10 -mb-10"></div>
-
-        <div class="max-w-5xl mx-auto px-4 relative z-10 text-center">
-            <span class="text-accent font-bold tracking-wider text-sm uppercase">আমাদের প্রযুক্তি</span>
-            <h2 class="text-3xl md:text-4xl font-bold mt-2 mb-8">বাসে ব্যবহৃত স্মার্ট ডিভাইস</h2>
-            
-            <p class="text-gray-300 text-lg mb-12 max-w-2xl mx-auto">
-                আমরা কোনো সাধারণ মোবাইল অ্যাপ দিয়ে ট্র্যাকিং করছি না। নির্ভুল এবং রিয়েল-টাইম ডাটা পাওয়ার জন্য প্রতিটি বাসে বসানো হয়েছে শক্তিশালী IoT হার্ডওয়্যার।
-            </p>
-
-            <!-- Device Highlights -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Box 1 -->
-                <div class="bg-gray-800/50 backdrop-blur-sm p-6 rounded-2xl border border-gray-700 hover:border-accent transition duration-300">
-                    <div class="text-4xl text-accent mb-4"><i class="fa-solid fa-microchip"></i></div>
-                    <h3 class="text-xl font-bold mb-2">কাস্টম IoT ডিভাইস</h3>
-                    <p class="text-gray-400 text-sm">প্রতিটি বাসে আমাদের নিজস্ব প্রযুক্তিতে তৈরি ডিভাইস ইনস্টল করা হয়েছে যা স্বয়ংক্রিয়ভাবে কাজ করে।</p>
-                </div>
-
-                <!-- Box 2 -->
-                <div class="bg-gray-800/50 backdrop-blur-sm p-6 rounded-2xl border border-gray-700 hover:border-accent transition duration-300">
-                    <div class="text-4xl text-green-400 mb-4"><i class="fa-solid fa-satellite-dish"></i></div>
-                    <h3 class="text-xl font-bold mb-2">GPS + 4G কানেক্টিভিটি</h3>
-                    <p class="text-gray-400 text-sm">বাসের অবস্থান নিখুঁতভাবে জানাতে এতে ব্যবহার করা হয়েছে <span class="text-white font-mono">SIM7600E</span> ও <span class="text-white font-mono">ESP32</span> মডিউল।</p>
-                </div>
-
-                <!-- Box 3 -->
-                <div class="bg-gray-800/50 backdrop-blur-sm p-6 rounded-2xl border border-gray-700 hover:border-accent transition duration-300">
-                    <div class="text-4xl text-blue-400 mb-4"><i class="fa-solid fa-bolt"></i></div>
-                    <h3 class="text-xl font-bold mb-2">নিরবচ্ছিন্ন ট্র্যাকিং</h3>
-                    <p class="text-gray-400 text-sm">ড্রাইভারের কোনো ইন্টারঅ্যাকশন ছাড়াই ডিভাইসটি সার্ভারে লাইভ লোকেশন পাঠাতে থাকে।</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Admin Section -->
-    <section id="admin" class="py-20 bg-gray-50">
+    <!-- Lost & Found Section -->
+    <section id="lost-found" class="py-20 bg-white border-t border-gray-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-12">
-                <h2 class="text-3xl font-bold text-gray-900">অ্যাডমিন কন্ট্রোল</h2>
-                <p class="text-gray-600 mt-2">বিশ্ববিদ্যালয় প্রশাসনের জন্য ম্যানেজমেন্ট প্যানেল</p>
-            </div>
-
-            <div class="flex flex-wrap justify-center gap-6">
-                <span class="bg-white px-6 py-3 rounded-full shadow-sm border border-gray-200 text-gray-700 font-medium">
-                    <i class="fa-solid fa-bus text-bus-purple mr-2"></i> ফ্লিট ম্যানেজমেন্ট
-                </span>
-                <span class="bg-white px-6 py-3 rounded-full shadow-sm border border-gray-200 text-gray-700 font-medium">
-                    <i class="fa-solid fa-gauge-high text-red-500 mr-2"></i> স্পিড অ্যালার্ট
-                </span>
-                <span class="bg-white px-6 py-3 rounded-full shadow-sm border border-gray-200 text-gray-700 font-medium">
-                    <i class="fa-solid fa-clock-rotate-left text-blue-500 mr-2"></i> রুট হিস্ট্রি
-                </span>
+            <div class="flex flex-col lg:flex-row items-center gap-12">
+                <div class="lg:w-1/2">
+                    <span class="text-alert-red font-bold tracking-wider text-sm bg-red-50 px-3 py-1 rounded-full border border-red-100">কমিউনিটি ফিচার</span>
+                    <h2 class="text-3xl font-bold text-gray-900 mt-4 mb-4">হারানো ও প্রাপ্তি (Lost & Found)</h2>
+                    <p class="text-gray-600 text-lg mb-8">বাসে কিছু ফেলে গেছেন? অথবা কুড়িয়ে পেয়েছেন? অ্যাপের এই ফিচারের মাধ্যমে ছবিসহ পোস্ট করুন এবং মালিকের কাছে পৌঁছে দিন।</p>
+                    
+                    <ul class="space-y-4">
+                        <li class="flex items-center gap-3">
+                            <i class="fa-solid fa-check-circle text-green-500 text-xl"></i>
+                            <span class="text-gray-700">ভেরিফাইড স্টুডেন্ট পোস্ট</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <i class="fa-solid fa-check-circle text-green-500 text-xl"></i>
+                            <span class="text-gray-700">সরাসরি যোগাযোগ ব্যবস্থা</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <i class="fa-solid fa-check-circle text-green-500 text-xl"></i>
+                            <span class="text-gray-700">ছবি আপলোড করার সুবিধা</span>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="lg:w-1/2 flex justify-center">
+                    <!-- App Card UI for Lost Item -->
+                    <div class="bg-white p-6 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-gray-100 w-full max-w-sm transform rotate-2 hover:rotate-0 transition duration-500">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                                <i class="fa-solid fa-user text-gray-500"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-sm">Tanvir Ahmed</h4>
+                                <p class="text-xs text-gray-500">বাস নং: B-24</p>
+                            </div>
+                            <span class="ml-auto bg-red-100 text-red-600 text-[10px] px-2 py-1 rounded font-bold uppercase">Lost</span>
+                        </div>
+                        <p class="text-gray-700 text-sm mb-3">নীল রঙের একটি আইডি কার্ড হোল্ডার পাওয়া গেছে। সঠিক প্রমাণ দিয়ে নিয়ে যান।</p>
+                        <div class="w-full h-32 bg-gray-100 rounded-lg flex items-center justify-center mb-4 border-2 border-dashed border-gray-200">
+                            <i class="fa-regular fa-image text-gray-400"></i>
+                        </div>
+                        <button class="w-full bg-bus-purple text-white py-2 rounded-lg text-sm font-bold shadow-md hover:bg-opacity-90">
+                            যোগাযোগ করুন
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
 
-    <!-- Footer -->
-    <footer class="bg-gray-900 text-gray-400 py-8 border-t border-gray-800">
-        <div class="max-w-7xl mx-auto px-4 text-center">
-            <h3 class="text-white font-bold text-lg mb-2">HSTU Transport Project</h3>
-            <p class="text-sm opacity-60">Developed by CSE Students, HSTU.</p>
-            <div class="mt-6 flex justify-center gap-6">
-                <a href="#" class="hover:text-white transition"><i class="fa-brands fa-facebook text-xl"></i></a>
-                <a href="#" class="hover:text-white transition"><i class="fa-brands fa-github text-xl"></i></a>
+    <!-- Professional Footer -->
+    <footer class="bg-gray-900 text-gray-300 pt-16 pb-8 border-t border-gray-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
+                
+                <!-- Column 1: Brand -->
+                <div>
+                    <div class="text-2xl text-white font-bold flex items-center gap-2 mb-4">
+                        <i class="fa-solid fa-bus-simple text-bus-purple"></i> 
+                        <span>HSTU<span class="text-blue-500">Track</span></span>
+                    </div>
+                    <p class="text-sm opacity-70 leading-relaxed mb-6">
+                        হাজী মোহাম্মদ দানেশ বিজ্ঞান ও প্রযুক্তি বিশ্ববিদ্যালয়ের শিক্ষার্থীদের যাতায়াত সহজ করার লক্ষ্যে তৈরি একটি স্মার্ট সলিউশন।
+                    </p>
+                    <div class="flex gap-4">
+                        <a href="#" class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-bus-blue hover:text-white transition"><i class="fa-brands fa-facebook-f"></i></a>
+                        <a href="#" class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-gray-700 hover:text-white transition"><i class="fa-brands fa-github"></i></a>
+                        <a href="#" class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-red-500 hover:text-white transition"><i class="fa-brands fa-youtube"></i></a>
+                    </div>
+                </div>
+
+                <!-- Column 2: Quick Links -->
+                <div>
+                    <h3 class="text-white font-bold text-lg mb-4">কুইক লিংকস</h3>
+                    <ul class="space-y-3 text-sm">
+                        <li><a href="#" class="hover:text-bus-blue transition"><i class="fa-solid fa-angle-right text-xs mr-2"></i>হোম</a></li>
+                        <li><a href="#features" class="hover:text-bus-blue transition"><i class="fa-solid fa-angle-right text-xs mr-2"></i>ফিচারসমূহ</a></li>
+                        <li><a href="#technology" class="hover:text-bus-blue transition"><i class="fa-solid fa-angle-right text-xs mr-2"></i>প্রযুক্তি</a></li>
+                        <li><a href="#lost-found" class="hover:text-bus-blue transition"><i class="fa-solid fa-angle-right text-xs mr-2"></i>হারানো বিজ্ঞপ্তি</a></li>
+                    </ul>
+                </div>
+
+                <!-- Column 3: Contact/Support -->
+                <div>
+                    <h3 class="text-white font-bold text-lg mb-4">যোগাযোগ</h3>
+                    <ul class="space-y-3 text-sm opacity-80">
+                        <li class="flex items-start gap-3">
+                            <i class="fa-solid fa-location-dot mt-1 text-bus-purple"></i>
+                            <span>হাবিপ্রবি, দিনাজপুর - ৫২০০<br>হাবিপ্রবি ক্যাম্পাস</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <i class="fa-solid fa-envelope text-bus-purple"></i>
+                            <span>support@hstutrack.com</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <i class="fa-solid fa-phone text-bus-purple"></i>
+                            <span>+880 1780946249</span>
+                        </li>
+                    </ul>
+                </div>
             </div>
-            <p class="text-xs mt-6 opacity-30">&copy; ২০২৫ হাজী মোহাম্মদ দানেশ বিজ্ঞান ও প্রযুক্তি বিশ্ববিদ্যালয়।</p>
+
+            <!-- Copyright Line -->
+            <div class="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center text-xs opacity-50">
+                <p>&copy; ২০২৫ হাজী মোহাম্মদ দানেশ বিজ্ঞান ও প্রযুক্তি বিশ্ববিদ্যালয়। সর্বস্বত্ব সংরক্ষিত।</p>
+                <p class="mt-2 md:mt-0">Developed with ❤️ by CSE Students</p>
+            </div>
         </div>
     </footer>
 
