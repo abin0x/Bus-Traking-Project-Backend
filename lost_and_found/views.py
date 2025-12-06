@@ -7,7 +7,7 @@ from .serializers import LostItemSerializer
 
 class StudentLostItemListView(generics.ListAPIView):
     serializer_class = LostItemSerializer
-    permission_classes = [IsAuthenticated] # লগইন করা স্টুডেন্টরাই শুধু দেখবে
+    # permission_classes = [IsAuthenticated] 
 
     def get_queryset(self):
         # ১. বর্তমান সময়
