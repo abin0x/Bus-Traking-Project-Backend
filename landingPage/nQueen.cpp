@@ -45,4 +45,3 @@ int main() {
   cout << "Total solutions: " << solutions << endl;
   return 0;
 }
-smfdkj
