@@ -3,7 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HSTU বাস ট্র্যাকার - স্মার্ট ট্রান্সপোর্ট সলিউশন</title>
+    <meta name="description" content="HSTU বাস ট্র্যাকার - হাজী মোহাম্মদ দানেশ বিজ্ঞান ও প্রযুক্তি বিশ্ববিদ্যালয়ের জন্য স্মার্ট ট্রান্সপোর্টেশন সলিউশন">
+    <meta name="keywords" content="HSTU, Bus Tracker, Campus Transportation, Real-time Tracking, IoT, Smart University">
+    <meta name="author" content="HSTU CSE Department">
+    
+    <title>HSTU Bus Tracker | স্মার্ট ক্যাম্পাস ট্রান্সপোর্টেশন</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%236A4C9C'/><text x='50' y='65' font-size='50' text-anchor='middle' fill='white'>🚌</text></svg>">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -13,6 +20,10 @@
     
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    
+    <!-- AOS Animation Library -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
 
     <script>
         tailwind.config = {
@@ -27,6 +38,20 @@
                     },
                     fontFamily: {
                         sans: ['Hind Siliguri', 'sans-serif'],
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        },
+                        'pulse-glow': {
+                            '0%, 100%': { boxShadow: '0 0 5px rgba(59, 130, 246, 0.5)' },
+                            '50%': { boxShadow: '0 0 20px rgba(59, 130, 246, 0.8)' },
+                        }
                     }
                 }
             }
@@ -38,16 +63,18 @@
             background: linear-gradient(135deg, rgba(106, 76, 156, 0.96), rgba(30, 136, 229, 0.92)), url('https://hstu.ac.bd/img/slider/1.jpg');
             background-size: cover;
             background-position: center;
+            background-attachment: fixed;
         }
-        /* Realistic Phone Mockup CSS */
+        
         .phone-frame {
-            border: 14px solid #1f2937; /* Dark Gray Bezel */
+            border: 14px solid #1f2937;
             border-radius: 40px;
             overflow: hidden;
             position: relative;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
             background: #fff;
         }
+        
         .phone-notch {
             position: absolute;
             top: 0;
@@ -60,6 +87,7 @@
             border-bottom-right-radius: 12px;
             z-index: 30;
         }
+        
         .map-pattern {
             background-color: #e5e7eb;
             background-image: 
@@ -67,8 +95,121 @@
                 linear-gradient(90deg, #d1d5db 1px, transparent 1px);
             background-size: 20px 20px;
         }
+        
         .hover-card-up:hover {
             transform: translateY(-5px);
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #6A4C9C, #1E88E5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .card-hover {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        
+        .gradient-border {
+            position: relative;
+            background: linear-gradient(white, white) padding-box,
+                        linear-gradient(135deg, #6A4C9C, #1E88E5) border-box;
+            border: 2px solid transparent;
+        }
+        
+        .bus-marker {
+            transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
+            filter: drop-shadow(0 4px 12px rgba(106, 76, 156, 0.3));
+        }
+        
+        .bus-pulse {
+            animation: bus-pulse 2s infinite;
+        }
+        
+        @keyframes bus-pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .map-controls {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            padding: 10px;
+            z-index: 1000;
+        }
+        
+        .map-layer-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .map-layer-btn:hover {
+            background: #f3f4f6;
+            transform: translateY(-2px);
+        }
+        
+        .map-layer-btn.active {
+            background: #6A4C9C;
+            color: white;
+            border-color: #6A4C9C;
+        }
+        
+        .scroll-indicator {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 30px;
+            height: 50px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 15px;
+        }
+        
+        .scroll-indicator::before {
+            content: '';
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 10px;
+            background: white;
+            border-radius: 2px;
+            animation: scroll 2s infinite;
+        }
+        
+        @keyframes scroll {
+            0% { transform: translate(-50%, 0); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: translate(-50%, 20px); opacity: 0; }
+        }
+        
+        @media (max-width: 768px) {
+            .hero-bg {
+                background-attachment: scroll;
+            }
         }
     </style>
 </head>
@@ -82,18 +223,19 @@
                 <div class="flex items-center gap-2">
                     <div class="text-2xl text-bus-purple font-bold flex items-center gap-2">
                         <i class="fa-solid fa-bus-simple"></i> 
-                        <span>HSTU<span class="text-bus-blue">Track</span></span>
+                        <a href="index.html">HSTU Track</a>
                     </div>
                 </div>
                 <!-- Desktop Menu -->
                 <div class="hidden md:flex space-x-8">
-                    <a href="#features" class="text-gray-700 hover:text-bus-purple font-medium transition">ফিচার</a>
-                    <a href="#technology" class="text-gray-700 hover:text-bus-purple font-medium transition">প্রযুক্তি</a>
-                    <a href="#lost-found" class="text-gray-700 hover:text-bus-purple font-medium transition">হারানো বিজ্ঞপ্তি</a>
+                    <a href="#features" class="text-gray-800 hover:text-bus-purple font-medium transition">ফিচার</a>
+                    
+                    <a href="#technology" class="text-gray-800 hover:text-bus-purple font-medium transition">প্রযুক্তি</a>
+                    <a href="#lost-found" class="text-gray-800 hover:text-bus-purple font-medium transition">হারানো বিজ্ঞপ্তি</a>
                 </div>
                 <!-- Badge -->
-                <span class="bg-purple-100 text-bus-purple px-4 py-1.5 rounded-full text-sm font-bold border border-purple-200 animate-pulse">
-                    Coming Soon
+                <span class="bg-yellow-500 text-bus-purple px-4 py-1.5 rounded-full text-sm font-bold border border-purple-200 animate-pulse">
+                    Coming Soon Our App!
                 </span>
             </div>
         </div>
@@ -106,7 +248,7 @@
             <!-- Left Text Content -->
             <div class="md:w-1/2 text-white text-center md:text-left z-10">
                 <div class="inline-flex items-center gap-2 bg-white/10 border border-white/20 px-4 py-1 rounded-full text-sm font-bold uppercase tracking-wider mb-6 backdrop-blur-md">
-                    <span class="w-2 h-2 bg-accent rounded-full animate-ping"></span> HSTU
+                    <span class="w-2 h-2 bg-accent rounded-full animate-ping"></span> Beta Release 0.1
                 </div>
                 <h1 class="text-4xl md:text-6xl font-bold leading-tight mb-6">
                     ক্যাম্পাস লাইফ হোক<br>
@@ -144,7 +286,7 @@
 
                         <!-- Bus Marker (Floating) -->
                         <div class="absolute top-[45%] left-[30%] z-10 transform translate-x-12">
-                            <div class="w-10 h-10 bg-bus-purple rounded-full border-4 border-white shadow-xl flex items-center justify-center animate-bounce">
+                            <div class="w-10 h-10 bg-bus-purple rounded-full border-4 border-white shadow-xl flex items-center justify-center animate-bounce bus-pulse">
                                 <i class="fa-solid fa-bus text-white text-sm"></i>
                             </div>
                             <div class="bg-gray-800 text-white text-[10px] px-2 py-1 rounded shadow mt-1 whitespace-nowrap text-center">
@@ -183,6 +325,8 @@
                 </div>
             </div>
         </div>
+        
+        
     </section>
 
     <!-- Features Grid -->
@@ -233,6 +377,7 @@
         </div>
     </section>
 
+   
     <!-- IoT Technology Section (Designed Cards) -->
     <section id="technology" class="py-20 bg-gray-50 relative">
         <!-- Background blob -->
@@ -243,7 +388,7 @@
 
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <div class="text-center mb-16">
-                <span class="bg-white border border-gray-200 text-gray-600 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">IoT পাওয়ারড</span>
+                <span class="bg-white border border-gray-200 text-gray-600 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">কাস্টম বিল্ট হার্ডওয়্যার</span>
                 <h2 class="text-3xl font-bold text-gray-900 mt-4">আমাদের প্রযুক্তির পেছনের গল্প</h2>
                 <p class="text-gray-600 mt-2">সাধারণ জিপিএস নয়, আমরা ব্যবহার করছি কাস্টম বিল্ট হার্ডওয়্যার</p>
             </div>
@@ -330,65 +475,109 @@
         </div>
     </section>
 
-    <!-- Professional Footer -->
-    <footer class="bg-gray-900 text-gray-300 pt-16 pb-8 border-t border-gray-800">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
-                
-                <!-- Column 1: Brand -->
-                <div>
-                    <div class="text-2xl text-white font-bold flex items-center gap-2 mb-4">
-                        <i class="fa-solid fa-bus-simple text-bus-purple"></i> 
-                        <span>HSTU<span class="text-blue-500">Track</span></span>
-                    </div>
-                    <p class="text-sm opacity-70 leading-relaxed mb-6">
-                        হাজী মোহাম্মদ দানেশ বিজ্ঞান ও প্রযুক্তি বিশ্ববিদ্যালয়ের শিক্ষার্থীদের যাতায়াত সহজ ও নিরাপদ করার লক্ষ্যে তৈরি একটি স্মার্ট প্ল্যাটফর্ম।
-                    </p>
-                    <div class="flex gap-4">
-                        <a href="#" class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-bus-blue hover:text-white transition"><i class="fa-brands fa-facebook-f"></i></a>
-                        <a href="#" class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-gray-700 hover:text-white transition"><i class="fa-brands fa-github"></i></a>
-                        <a href="#" class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-red-500 hover:text-white transition"><i class="fa-brands fa-youtube"></i></a>
-                    </div>
-                </div>
-
-                <!-- Column 2: Quick Links -->
-                <div>
-                    <h3 class="text-white font-bold text-lg mb-4">কুইক লিংকস</h3>
-                    <ul class="space-y-3 text-sm">
-                        <li><a href="#" class="hover:text-bus-blue transition"><i class="fa-solid fa-angle-right text-xs mr-2"></i>হোম</a></li>
-                        <li><a href="#features" class="hover:text-bus-blue transition"><i class="fa-solid fa-angle-right text-xs mr-2"></i>ফিচারসমূহ</a></li>
-                        <li><a href="#technology" class="hover:text-bus-blue transition"><i class="fa-solid fa-angle-right text-xs mr-2"></i>প্রযুক্তি</a></li>
-                        <li><a href="#lost-found" class="hover:text-bus-blue transition"><i class="fa-solid fa-angle-right text-xs mr-2"></i>হারানো বিজ্ঞপ্তি</a></li>
-                    </ul>
-                </div>
-
-                <!-- Column 3: Contact/Support -->
-                <div>
-                    <h3 class="text-white font-bold text-lg mb-4">যোগাযোগ</h3>
-                    <ul class="space-y-3 text-sm opacity-80">
-                        <li class="flex items-start gap-3">
-                            <i class="fa-solid fa-location-dot mt-1 text-bus-purple"></i>
-                            <span>হাবিপ্রবি, দিনাজপুর - ৫২০০<br>হাবিপ্রবি ক্যাম্পাস</span>
-                        </li>
-                        <li class="flex items-center gap-3">
-                            <i class="fa-solid fa-envelope text-bus-purple"></i>
-                            <span>support@hstutrack.com</span>
-                        </li>
-                        <li class="flex items-center gap-3">
-                            <i class="fa-solid fa-phone text-bus-purple"></i>
-                            <span>+880 1780946249</span>
-                        </li>
-                    </ul>
-                </div>
+    <!-- CTA Section -->
+    <section class="py-20 bg-gradient-to-r from-bus-purple to-bus-blue">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-4xl font-bold text-white mb-6">আপনার ক্যাম্পাস লাইফকে করুন সহজ</h2>
+            <p class="text-xl text-white/90 mb-10 max-w-2xl mx-auto">আজই HSTU Track অ্যাপটি ডাউনলোড করুন এবং স্মার্ট ট্রান্সপোর্টেশন সিস্টেমের অংশ হোন</p>
+            
+            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <button class="bg-white text-bus-purple px-8 py-4 rounded-xl font-bold hover:bg-gray-100 transition shadow-lg flex items-center justify-center gap-3 group">
+                    <i class="fa-brands fa-google-play text-xl group-hover:scale-110 transition"></i> প্লে স্টোর (শীঘ্রই)
+                </button>
+                <button class="bg-transparent border-2 border-white text-white px-8 py-4 rounded-xl font-bold hover:bg-white/10 transition flex items-center justify-center gap-3">
+                    <i class="fa-brands fa-apple text-xl"></i> App Store (শীঘ্রই)
+                </button>
             </div>
-
-            <!-- Copyright Line -->
-            <div class="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center text-xs opacity-50">
-                <p>&copy; ২০২৫ হাজী মোহাম্মদ দানেশ বিজ্ঞান ও প্রযুক্তি বিশ্ববিদ্যালয়। সর্বস্বত্ব সংরক্ষিত।</p>
-                <p class="mt-2 md:mt-0">Developed by CSE Students</p>
-            </div>
+            
+            <p class="text-white/70 text-sm mt-8">
+                <i class="fa-solid fa-shield-alt mr-2"></i>
+                ১০০% নিরাপদ এবং ফ্রি • ট্রায়াল ভার্সন রানিং
+            </p>
         </div>
-    </footer>
+    </section>
 
+<footer class="bg-gray-900 text-gray-400 py-6">
+    <div class="max-w-6xl mx-auto px-4 text-center">
+        <p class="text-sm mb-2">© ২০২৫ হাজী মোহাম্মদ দানেশ বিজ্ঞান ও প্রযুক্তি বিশ্ববিদ্যালয়</p>
+        <p class="text-xs text-gray-500">HSTU Track - Smart Campus Transportation System</p>
+    </div>
+</footer>
+
+    <!-- Back to Top Button -->
+    <button id="backToTop" class="fixed bottom-8 right-8 w-12 h-12 bg-bus-purple text-white rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-300 hidden z-30">
+        <i class="fa-solid fa-arrow-up"></i>
+    </button>
+
+    <!-- AOS Library -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // Initialize AOS
+        AOS.init({
+            duration: 800,
+            once: true,
+            offset: 100
+        });
+
+
+        // Navbar scroll effect
+        const navbar = document.querySelector('nav');
+        let lastScroll = 0;
+
+        window.addEventListener('scroll', () => {
+            const currentScroll = window.pageYOffset;
+            
+            if (currentScroll > 100) {
+                navbar.classList.add('shadow-lg', 'bg-white/98');
+                if (currentScroll > lastScroll && currentScroll > 100) {
+                    navbar.style.transform = 'translateY(-100%)';
+                } else {
+                    navbar.style.transform = 'translateY(0)';
+                }
+            } else {
+                navbar.classList.remove('shadow-lg');
+                navbar.style.transform = 'translateY(0)';
+            }
+            
+            // Back to Top Button
+            const backToTop = document.getElementById('backToTop');
+            if (currentScroll > 500) {
+                backToTop.classList.remove('hidden');
+            } else {
+                backToTop.classList.add('hidden');
+            }
+            
+            lastScroll = currentScroll;
+        });
+
+        // Back to Top
+        document.getElementById('backToTop').addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                if (targetId === '#') return;
+                
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 80,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+
+    </script>
 </body>
 </html>
