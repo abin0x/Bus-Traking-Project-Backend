@@ -25,3 +25,5 @@ class StudentLostItemListView(generics.ListAPIView):
         ).order_by('-created_at')
         
         return queryset
+    
+today trial version 0.1
