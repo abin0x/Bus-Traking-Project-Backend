@@ -26,4 +26,4 @@ class StudentLostItemListView(generics.ListAPIView):
         
         return queryset
     
-today trial version 0.1
+# today trial version 0.1
