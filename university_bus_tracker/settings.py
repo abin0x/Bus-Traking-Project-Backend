@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'accounts',
     'lost_and_found',
     'corsheaders',
+    'django_celery_beat',
 
 ]
 
@@ -157,3 +158,28 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = config('EMAIL_HOST_USER')      # .env থেকে নেবে
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')  # .env থেকে নেবে
+
+
+
+
+
+
+# CELERY CONFIGURATION
+# ==========================================
+CELERY_BROKER_URL = 'redis://127.0.0.1:6379/0'  # Redis লিংক
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE  # আপনার settings.py এর টাইমজোন নিবে
+
+# ৩. শিডিউল সেট করা (প্রতিদিন রাত ৩টায় রান করবে)
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    'cleanup-old-gps-every-night': {
+        'task': 'core.tasks.delete_old_gps_data',
+        'schedule': crontab(hour=3, minute=0),  # রাত ৩:০০ টা
+        # টেস্টিংয়ের জন্য প্রতি ১ মিনিট পর পর চালাতে চাইলে নিচের লাইনটি আনকমেন্ট করুন:
+        # 'schedule': 30.0, 
+    },
+}

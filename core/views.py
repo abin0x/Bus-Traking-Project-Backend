@@ -330,9 +330,38 @@ class LocationUpdateView(View):
             async_to_sync(channel_layer.group_send)(
                 "tracking_group",
                 {"type": "send_update", "message": processed_data}
-            )
+            ) # Send to WebSocket Group
 
-            BusLocation.objects.create(bus=bus_obj, latitude=lat, longitude=lng, speed=speed, direction=final_direction)
+# --------------- this is the extra add for smart save to database ----------
+            should_save_to_db = True
+            
+            # Check last saved location
+            last_location = BusLocation.objects.filter(bus=bus_obj).order_by('-timestamp').first()
+            
+            if last_location:
+                distance_moved = calculate_distance(
+                    last_location.latitude, last_location.longitude,
+                    lat, lng
+                )
+                # If moved less than 10 meters, skip DB save
+                if distance_moved < 10:  
+                    should_save_to_db = False
+            if should_save_to_db:
+                BusLocation.objects.create(
+                    bus=bus_obj, 
+                    latitude=lat, 
+                    longitude=lng, 
+                    speed=speed, 
+                    direction=final_direction
+                )
+#-----------------------  SMART SAVE TO DATABASE------------------------
+            # BusLocation.objects.create(
+            #     bus=bus_obj, 
+            #     latitude=lat, 
+                # longitude=lng,   >>>>>>>>>>>>>>>>>>>>>>>>> this is workable old code
+            #     speed=speed, 
+            #     direction=final_direction
+            # )
             
             return JsonResponse({'status': 'success'}, status=200)
 

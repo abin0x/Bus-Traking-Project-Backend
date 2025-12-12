@@ -33,7 +33,8 @@ class BusLocation(models.Model):
 
     class Meta:
         indexes = [
-            models.Index(fields=['bus', '-timestamp']), 
+            models.Index(fields=['bus', '-timestamp']), # দ্রুত লেটেস্ট লোকেশন খুঁজতে সাহায্য করবে
+            models.Index(fields=['timestamp']), # সময় ভিত্তিক ফিল্টারিং দ্রুত করবে
         ]
 
     def __str__(self):
