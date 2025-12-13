@@ -60,6 +60,12 @@ class BusSchedule(models.Model):
         ('CAMPUS_TO_BRTCDEPOT', 'Campus to BRTC Depot'),
         ('CAMPUS_TO_DOSHMILE', 'Campus to Doshmile'),
         ('CITY_TO_CAMPUS', 'City to Campus'),
+        ('BRTCDEPOT_TO_CAMPUS', 'BRTC Depot to Campus'),
+        ('DOSHMILE_TO_CAMPUS', 'Doshmile to Campus'),
+        ('TERMINAL_TO_CAMPUS','Terminal to campus'),
+        ('SUIHARI_TO_CAMPUS','Suihari to campus'),
+        ('BALIBARI_TO_CAMPUS','Balibari to campus'),
+
     ]
     DAY_TYPE_CHOICES = [
         ('SUN_THU', 'Sunday to Thursday (Regular)'),
