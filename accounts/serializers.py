@@ -100,4 +100,4 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = ['full_name', 'student_id', 'email', 'phone_number', 'faculty', 'department', 'batch','profile_image']
         # স্টুডেন্ট আইডি কেউ চেঞ্জ করতে পারবে না
         read_only_fields = ['student_id','batch']
-        jd
+        
