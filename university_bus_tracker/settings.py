@@ -6,10 +6,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # Quick-start development settings - unsuitable for production
+# SECRET_KEY = 'django-insecure-rq$22(cdakeb)tm3&39^k7fr7^@^sii-6$str1mbg=sop50945'
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-# SECRET_KEY = 'django-insecure-rq$22(cdakeb)tm3&39^k7fr7^@^sii-6$str1mbg=sop50945'
 
 SECRET_KEY = config('SECRET_KEY')  # .env থেকে নেবে
 
