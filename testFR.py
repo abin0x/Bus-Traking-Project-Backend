@@ -1,10 +1,11 @@
 import requests
 import time
+import random
 
 URL = "http://127.0.0.1:8000/api/update-location/"
 BUS_ID = "BUS-01"
 
-# 5 stops with your coordinates
+# Stops with coordinates
 stops = [
     {"name": "Uni Gate", "lat": 23.8103, "lng": 90.4125},
     {"name": "Science", "lat": 23.8150, "lng": 90.4150},
@@ -15,7 +16,8 @@ stops = [
     {"name": "Uni Gate", "lat": 23.8400, "lng": 90.4400},
 ]
 
-def send(lat, lng, direction, msg):
+# এখানে speed প্যারামিটার যোগ করা হয়েছে
+def send(lat, lng, direction, msg, speed):
     try:
         # Convert to NMEA
         d = int(lat)
@@ -26,35 +28,40 @@ def send(lat, lng, direction, msg):
         m = (lng - d) * 60
         lng_n = f"{d*100+m:.4f}"
         
-        gps = f"{lat_n},N,{lng_n},E,123456,123456.0,10.0,8.0,0.0"
+        # আগে এখানে 10.0 ফিক্সড ছিল, এখন {speed} ডাইনামিক করা হয়েছে
+        gps = f"{lat_n},N,{lng_n},E,123456,123456.0,{speed},8.0,0.0"
         
         requests.post(URL, json={
             "bus_id": BUS_ID,
             "gps_raw": gps,
-            "direction": direction
+            "direction": direction,
+            "speed": speed  # ব্যাকএন্ডে আলাদাভাবে স্পিড পাঠানো হচ্ছে
         }, timeout=1)
         
         icon = "🟢" if direction == "UNI_TO_CITY" else "🔵"
-        print(f"{icon} {msg}")
+        print(f"{icon} {msg} | Speed: {speed} km/h")
     except:
         print("❌ Error")
     
-    time.sleep(2)  # 2 seconds between sends
+    time.sleep(2)
 
-print("🚌 Quick Simulation - 5 Stops")
+print("🚌 Quick Simulation - 5 Stops with Speed")
 
 # Forward trip (UNI → CITY)
 print("\n➡️  UNI_TO_CITY")
 for i, stop in enumerate(stops):
-    send(stop['lat'], stop['lng'], "UNI_TO_CITY", f"Stop {i+1}: {stop['name']}")
+    # রেন্ডম স্পিড জেনারেট করা হচ্ছে (১০ থেকে ৪০ এর মধ্যে)
+    current_speed = random.randint(10, 40)
+    send(stop['lat'], stop['lng'], "UNI_TO_CITY", f"Stop {i+1}: {stop['name']}", current_speed)
 
-# Change direction at last stop
+# Change direction
 print("\n🔄 DIRECTION CHANGE")
-send(stops[-1]['lat'], stops[-1]['lng'], "CITY_TO_UNI", "Switch to CITY_TO_UNI")
+send(stops[-1]['lat'], stops[-1]['lng'], "CITY_TO_UNI", "Switch to CITY_TO_UNI", 0)
 
 # Return trip (CITY → UNI)
 print("\n⬅️  CITY_TO_UNI")
 for i in range(len(stops)-1, -1, -1):
-    send(stops[i]['lat'], stops[i]['lng'], "CITY_TO_UNI", f"Return Stop {len(stops)-i}: {stops[i]['name']}")
+    current_speed = random.randint(10, 40)
+    send(stops[i]['lat'], stops[i]['lng'], "CITY_TO_UNI", f"Return Stop {len(stops)-i}: {stops[i]['name']}", current_speed)
 
 print("\n✅ Done!")
