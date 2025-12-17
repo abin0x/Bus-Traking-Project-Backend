@@ -14,17 +14,25 @@ class Bus(models.Model):
     route = models.ForeignKey(Route, on_delete=models.SET_NULL, null=True, blank=True)
     api_key = models.CharField(max_length=100, default="secret_key") 
     is_active = models.BooleanField(default=True)
+
     last_stop_order = models.IntegerField(default=0) 
     last_direction = models.CharField(max_length=50, default="STOPPED")
     TRIP_STATUS_CHOICES = [('IDLE', 'Idle'), ('READY', 'Ready'), ('ON_TRIP', 'On Trip')]
     trip_status = models.CharField(max_length=20, choices=TRIP_STATUS_CHOICES, default='IDLE')
     last_arrival_time = models.DateTimeField(null=True, blank=True)
 
+    #new fields for enhanced tracking
+    current_latitude = models.FloatField(null=True, blank=True)
+    current_longitude = models.FloatField(null=True, blank=True)
+    current_speed = models.FloatField(default=0.0)
+    last_contact = models.DateTimeField(auto_now=True, help_text="Last time device sent data")
+
     def __str__(self):
         return f"{self.name} ({self.device_id})"
 
 class BusLocation(models.Model):
-    bus = models.ForeignKey(Bus, on_delete=models.CASCADE)
+    # bus = models.ForeignKey(Bus, on_delete=models.CASCADE)
+    bus = models.ForeignKey(Bus, on_delete=models.CASCADE, related_name='locations')
     latitude = models.FloatField()
     longitude = models.FloatField()
     speed = models.FloatField(default=0.0)

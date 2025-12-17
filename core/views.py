@@ -1,4 +1,5 @@
 import json
+import logging
 from django.http import JsonResponse
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.views import APIView
@@ -12,26 +13,24 @@ from asgiref.sync import async_to_sync
 from django.db.models import Max, Min
 from django.utils import timezone
 from datetime import timedelta
-from .models import Bus, BusLocation, BusStop
+from rest_framework import viewsets
+
+from .models import Bus, BusLocation, BusStop, BusSchedule
 from .utils import parse_sim7600_gps, calculate_distance
 from .serializers import BusScheduleSerializer
-from rest_framework import viewsets
-from .models import BusSchedule
 
+# ✅ Setup Logger
+logger = logging.getLogger(__name__)
 
 # ==========================================
 # HELPER: GET TRIP INFO
 # ==========================================
 def get_trip_info(bus_obj, direction_status):
-    """
-    Direction অনুযায়ী Start এবং Destination ডায়নামিকালি সেট করে।
-    """
     origin = "Unknown"
     destination = "Unknown"
 
     if bus_obj.route:
         stops = bus_obj.route.stops.all().order_by('order')
-        
         if stops.exists():
             first_stop_name = stops.first().name
             last_stop_name = stops.last().name
@@ -60,267 +59,218 @@ class LocationUpdateView(View):
     """
 
     def get(self, request):
-        """
-        [FRONTEND API] ম্যাপ লোডের জন্য (With Timeout Logic)
-        """
-        active_buses = Bus.objects.filter(is_active=True).select_related('route')
-        bus_list = []
-        
-        now = timezone.now()
+        """ [FRONTEND API] """
+        try:
+            active_buses = Bus.objects.filter(is_active=True).select_related('route')
+            bus_list = []
+            now = timezone.now()
 
-        for bus in active_buses:
-            redis_key = f"bus_data_{bus.device_id}"
-            cached_data = cache.get(redis_key)
+            for bus in active_buses:
+                redis_key = f"bus_data_{bus.device_id}"
+                cached_data = cache.get(redis_key)
 
-            # --- DYNAMIC TIMEOUT LOGIC ---
-            # বাস ট্রিপে থাকলে ১০ মিনিট (নেটওয়ার্ক ইস্যুর জন্য সময় দেওয়া হলো)
-            # স্ট্যান্ডে থাকলে ২ মিনিট (ড্রাইভার অফ করলে দ্রুত ভ্যানিশ হবে)
-            
-            is_on_trip = bus.trip_status == 'ON_TRIP'
-            timeout_minutes = 10 if is_on_trip else 2
-            time_threshold = now - timedelta(minutes=timeout_minutes)
+                is_on_trip = bus.trip_status == 'ON_TRIP'
+                timeout_minutes = 10 if is_on_trip else 2
+                time_threshold = now - timedelta(minutes=timeout_minutes)
 
-            should_include = False
-            last_update_ts = None 
-
-            # A. ক্যাশ চেক
-            if cached_data:
-                should_include = True
-                last_update_ts = cached_data.get('last_seen', now.timestamp())
-                # last_update_ts = now.timestamp()
-            else:
-                # B. ডাটাবেস চেক
-                last_loc = BusLocation.objects.filter(bus=bus).order_by('-timestamp').first()
-                if last_loc:
-                    if last_loc.timestamp >= time_threshold:
-                        should_include = True
-                        last_update_ts = last_loc.timestamp.timestamp()
-            
-            if should_include:
-                current_dir = bus.last_direction if bus.last_direction else "STOPPED"
-                origin, dest = get_trip_info(bus, current_dir)
-
-                # Message Logic for GET request
-                next_departure_text = ""
-                if bus.trip_status == 'READY':
-                    next_departure_text = "Departs in few min"
+                should_include = False
+                last_update_ts = None 
+                lat, lng, speed = None, None, 0.0
 
                 if cached_data:
-                    cached_data['last_order'] = bus.last_stop_order
-                    cached_data['direction_status'] = current_dir
-                    cached_data['trip_status'] = bus.trip_status
-                    cached_data['next_departure'] = next_departure_text
-                    cached_data['origin'] = origin
-                    cached_data['destination'] = dest
-                    cached_data['last_seen'] = last_update_ts
-                    bus_list.append(cached_data)
-                else:
-                    last_loc = BusLocation.objects.filter(bus=bus).order_by('-timestamp').first()
-                    bus_list.append({
-                        'id': bus.device_id,
-                        'name': bus.name,
-                        'route': bus.route.name if bus.route else "No Route",
-                        'lat': last_loc.latitude,
-                        'lng': last_loc.longitude,
-                        'speed': last_loc.speed,
-                        'status': 'offline',
-                        'traffic': 'normal',
-                        'trip_status': bus.trip_status,
-                        'next_departure': next_departure_text,
-                        'direction_status': current_dir,
-                        'last_update': str(last_loc.timestamp),
-                        'last_seen': last_update_ts,
-                        'current_stop': None,
-                        'at_stop': False,
-                        'last_order': bus.last_stop_order,
-                        'origin': origin,
-                        'destination': dest
-                    })
+                    should_include = True
+                    last_update_ts = cached_data.get('last_seen', now.timestamp())
+                elif bus.last_contact and bus.last_contact >= time_threshold:
+                    if bus.current_latitude and bus.current_longitude:
+                        should_include = True
+                        last_update_ts = bus.last_contact.timestamp()
+                        lat = bus.current_latitude
+                        lng = bus.current_longitude
+                        speed = bus.current_speed
 
-        return JsonResponse({'status': 'success', 'buses': bus_list}, status=200)
+                if should_include:
+                    current_dir = bus.last_direction if bus.last_direction else "STOPPED"
+                    origin, dest = get_trip_info(bus, current_dir)
+                    next_departure_text = "Departs in few min" if bus.trip_status == 'READY' else ""
+
+                    if cached_data:
+                        cached_data['last_order'] = bus.last_stop_order
+                        cached_data['direction_status'] = current_dir
+                        cached_data['trip_status'] = bus.trip_status
+                        cached_data['next_departure'] = next_departure_text
+                        cached_data['origin'] = origin
+                        cached_data['destination'] = dest
+                        bus_list.append(cached_data)
+                    else:
+                        bus_list.append({
+                            'id': bus.device_id,
+                            'name': bus.name,
+                            'route': bus.route.name if bus.route else "No Route",
+                            'lat': lat, 'lng': lng, 'speed': speed,
+                            'status': 'offline', 'traffic': 'normal',
+                            'trip_status': bus.trip_status,
+                            'next_departure': next_departure_text,
+                            'direction_status': current_dir,
+                            'last_update': str(bus.last_contact),
+                            'last_seen': last_update_ts,
+                            'current_stop': None, 'at_stop': False,
+                            'last_order': bus.last_stop_order,
+                            'origin': origin, 'destination': dest
+                        })
+
+            return JsonResponse({'status': 'success', 'buses': bus_list}, status=200)
+        except Exception as e:
+            logger.error(f"Error in GET request: {e}")
+            return JsonResponse({'status': 'error', 'message': 'Server Error'}, status=500)
 
     def post(self, request):
-        """
-        [IOT DEVICE API] ESP32 থেকে ডেটা রিসিভ
-        """
+        """ [IOT DEVICE API] """
         try:
             body_unicode = request.body.decode('utf-8')
             if not body_unicode:
+                logger.warning("Empty Body received in POST")
                 return JsonResponse({'status': 'error', 'message': 'Empty Body'}, status=400)
             
             data = json.loads(body_unicode)
 
-            # ১. ডেটা এক্সট্রাকশন
+            # 1. Extract Data
             incoming_bus_id = data.get('bus_id')
             raw_gps = data.get('gps_raw', '')
             device_direction = data.get('direction', 'STOPPED')
             incoming_speed = data.get('speed', 0.0)
 
-            # ২. বাস খুঁজে বের করা
+            # 2. Find Bus
             try:
                 bus_obj = Bus.objects.select_related('route').get(device_id=incoming_bus_id)
             except Bus.DoesNotExist:
+                logger.error(f"Device not registered: {incoming_bus_id}")
                 return JsonResponse({'status': 'error', 'message': 'Device not registered'}, status=404)
 
-            # জিপিএস পার্সিং
+            # 3. GPS Parsing
             parsed_data = parse_sim7600_gps(raw_gps)
             if not parsed_data:
-                return JsonResponse({'status': 'skipped', 'message': 'Waiting for GPS fix or Invalid Format'}, status=200)
+                logger.warning(f"Invalid GPS data from {bus_obj.name}: {raw_gps}")
+                return JsonResponse({'status': 'skipped', 'message': 'Waiting for GPS fix'}, status=200)
 
             lat = parsed_data['latitude']
             lng = parsed_data['longitude']
-            # [FIXED LOGIC] স্পিড সেট করা
-            # যদি JSON এ স্পিড থাকে তবে সেটি নিন, নাহলে পার্স করা ডেটা (আগের ভার্সনের জন্য)
             try:
                 speed = float(incoming_speed)
             except:
                 speed = parsed_data['speed']
 
             # ==========================================
-            # 🔘 1. MANUAL PRIORITY CHECK (DRIVER BUTTON)
+            # 🔘 4. LOGIC: MANUAL & AUTO DIRECTION
             # ==========================================
             manual_change_detected = False
             
-            # ড্রাইভার যদি বাটন চাপে এবং ডিরেকশন চেঞ্জ করে
+            # Driver Button Logic
             if device_direction != 'STOPPED' and device_direction != bus_obj.last_direction:
-                print(f"🔘 Manual Button Pressed: {bus_obj.last_direction} -> {device_direction}")
+                # ✅ Logged
+                logger.info(f"🔘 BUTTON PRESSED: {bus_obj.name} changed {bus_obj.last_direction} -> {device_direction}")
                 
                 bus_obj.last_direction = device_direction
-                
                 if device_direction == "UNI_TO_CITY":
                     bus_obj.last_stop_order = 0
                 elif device_direction == "CITY_TO_UNI":
                     bus_obj.last_stop_order = 999 
                 
-                # বাটন চাপলে আমরা বাসকে সরাসরি 'READY' স্টেটে নিয়ে যাবো
                 bus_obj.trip_status = 'READY'
-                bus_obj.save()
-                
                 manual_change_detected = True 
 
-            # ==========================================
-            # 🧠 2. SPEED & LOCATION LOGIC (AUTO CONTROL)
-            # ==========================================
-            
+            # Auto Logic
             if bus_obj.route:
                 stops = bus_obj.route.stops.all().order_by('order')
-                
                 if stops.exists():
-                    first_stop = stops.first() # Start (University)
-                    last_stop = stops.last()   # End (City)
-
+                    first_stop = stops.first()
+                    last_stop = stops.last()
                     dist_to_start = calculate_distance(lat, lng, first_stop.latitude, first_stop.longitude)
                     dist_to_end = calculate_distance(lat, lng, last_stop.latitude, last_stop.longitude)
+                    at_terminal = (dist_to_start <= 100) or (dist_to_end <= 100)
 
-                    # বাস কি কোনো টার্মিনালের ১০০ মিটারের মধ্যে আছে?
-                    at_start_terminal = dist_to_start <= 100
-                    at_end_terminal = dist_to_end <= 100
-                    is_at_terminal = at_start_terminal or at_end_terminal
-
-                    # --- A. বাস চলা শুরু করলে (SPEED > 5) ---
-                    # স্ট্যান্ড থেকে বা ট্রাফিক জ্যাম থেকে টান দিলে
+                    # Moving
                     if speed > 5:
                         if bus_obj.trip_status == 'READY':
-                            print(f"🚀 {bus_obj.name} started moving. Status: ON_TRIP")
+                            logger.info(f"🚀 {bus_obj.name} started moving. Status: ON_TRIP")
                         
                         bus_obj.trip_status = 'ON_TRIP'
-                        
-                        # অটো ডিরেকশন (মাঝ রাস্তায় ডিরেকশন পাল্টালে)
                         if not manual_change_detected:
                             if (100 < dist_to_start < 1000) and bus_obj.last_direction != "UNI_TO_CITY":
+                                 logger.info(f"🔄 Auto-Switch: {bus_obj.name} -> UNI_TO_CITY")
                                  bus_obj.last_direction = "UNI_TO_CITY"
                                  bus_obj.last_stop_order = 0
                             elif (100 < dist_to_end < 1000) and bus_obj.last_direction != "CITY_TO_UNI":
+                                 logger.info(f"🔄 Auto-Switch: {bus_obj.name} -> CITY_TO_UNI")
                                  bus_obj.last_direction = "CITY_TO_UNI"
                                  bus_obj.last_stop_order = 999
-                        
-                        bus_obj.save()
-
-                    # --- B. বাস থামানো থাকলে (SPEED < 3) ---
-                    elif speed < 3:
-                        
-                        if is_at_terminal:
-                            # টার্মিনালে আছে + স্পিড ০ = বাস READY (Waiting for departure)
-                            # যদি বাস IDLE না থাকে (IDLE মানে ড্রাইভার চলে গেছে/অফ)
-                            if bus_obj.trip_status != 'IDLE':
-                                bus_obj.trip_status = 'READY'
-                                
-                                # অটো ডিরেকশন সেট (যদি ড্রাইভার বাটন না চাপে)
-                                if not manual_change_detected:
-                                    if at_start_terminal and bus_obj.last_direction != "UNI_TO_CITY":
-                                        bus_obj.last_direction = "UNI_TO_CITY"
-                                        bus_obj.last_stop_order = 0
-                                        print("🤖 Auto-Set: Ready at Start Terminal")
-                                    elif at_end_terminal and bus_obj.last_direction != "CITY_TO_UNI":
-                                        bus_obj.last_direction = "CITY_TO_UNI"
-                                        bus_obj.last_stop_order = 999
-                                        print("🤖 Auto-Set: Ready at End Terminal")
-                                
-                                bus_obj.save()
-                        
-                        else:
-                            # টার্মিনালের বাইরে + স্পিড ০ = ট্রাফিক জ্যাম
-                            # স্ট্যাটাস যা ছিল (ON_TRIP) তাই থাকবে, চেঞ্জ হবে না
-                            pass
+                    
+                    # Stopped
+                    elif speed < 3 and at_terminal:
+                         if bus_obj.trip_status != 'IDLE':
+                            bus_obj.trip_status = 'READY'
+                            if not manual_change_detected:
+                                if (dist_to_start <= 100) and bus_obj.last_direction != "UNI_TO_CITY":
+                                    logger.info(f"🤖 Auto-Set: {bus_obj.name} Ready at Start Terminal")
+                                    bus_obj.last_direction = "UNI_TO_CITY"
+                                    bus_obj.last_stop_order = 0
+                                elif (dist_to_end <= 100) and bus_obj.last_direction != "CITY_TO_UNI":
+                                    logger.info(f"🤖 Auto-Set: {bus_obj.name} Ready at End Terminal")
+                                    bus_obj.last_direction = "CITY_TO_UNI"
+                                    bus_obj.last_stop_order = 999
 
             # ==========================================
-
-
-            # ৪. ট্রাফিক লজিক
+            # 📍 5. STOP LOGIC & TRAFFIC
+            # ==========================================
             traffic_status = 'normal'
             if speed < 5: traffic_status = 'heavy'
             elif speed < 25: traffic_status = 'medium'
 
-            # ৫. স্টপেজ লজিক
             current_stop_name = None
             is_at_stop = False
-            final_direction = bus_obj.last_direction
-
-            if bus_obj.route and final_direction != "STOPPED":
+            
+            if bus_obj.route and bus_obj.last_direction != "STOPPED":
                 route_stops = BusStop.objects.filter(route=bus_obj.route)
-                
                 for stop in route_stops:
-                    dist = calculate_distance(lat, lng, stop.latitude, stop.longitude)
-                    
-                    if dist <= 50:
+                    if calculate_distance(lat, lng, stop.latitude, stop.longitude) <= 50:
                         current_stop_name = stop.name
                         is_at_stop = True
+                        
                         should_update = False
+                        if bus_obj.last_direction == "UNI_TO_CITY" and stop.order > bus_obj.last_stop_order:
+                             should_update = True
+                        elif bus_obj.last_direction == "CITY_TO_UNI" and stop.order < bus_obj.last_stop_order:
+                             should_update = True
                         
-                        if final_direction == "UNI_TO_CITY":
-                            if stop.order > bus_obj.last_stop_order: should_update = True
-                        elif final_direction == "CITY_TO_UNI":
-                            if stop.order < bus_obj.last_stop_order: should_update = True
-                        
-                        if stop.order == bus_obj.last_stop_order: pass
-
                         if should_update:
                             bus_obj.last_stop_order = stop.order
-                            bus_obj.save()
-                            print(f"📍 Progress ({final_direction}): Reached {stop.name}")
+                            # ✅ Logged
+                            logger.info(f"📍 Progress ({bus_obj.last_direction}): {bus_obj.name} Reached {stop.name}")
                         break 
 
-            # ৬. মেসেজ এবং প্যাকেট তৈরি
-            origin_name, dest_name = get_trip_info(bus_obj, final_direction)
-            
-            # Generic Time Message for Real-time
-            next_departure_text = ""
-            if bus_obj.trip_status == 'READY':
-                next_departure_text = "Departs in few min"
+            # ==========================================
+            # 🚀 6. LIVE UPDATE
+            # ==========================================
+            bus_obj.current_latitude = lat
+            bus_obj.current_longitude = lng
+            bus_obj.current_speed = speed
+            bus_obj.save() 
+
+            # ==========================================
+            # 📡 7. BROADCAST (REDIS)
+            # ==========================================
+            origin_name, dest_name = get_trip_info(bus_obj, bus_obj.last_direction)
+            next_departure_text = "Departs in few min" if bus_obj.trip_status == 'READY' else ""
 
             processed_data = {
                 'id': bus_obj.device_id,
                 'name': bus_obj.name,
                 'route': bus_obj.route.name if bus_obj.route else "No Route",
-                'lat': lat,
-                'lng': lng,
-                'speed': speed,
+                'lat': lat, 'lng': lng, 'speed': speed,
                 'traffic': traffic_status,
-                'direction_status': final_direction,
+                'direction_status': bus_obj.last_direction,
                 'trip_status': bus_obj.trip_status, 
                 'next_departure': next_departure_text, 
                 'status': 'stopped' if speed < 1 else 'moving',
-                
                 'current_stop': current_stop_name,
                 'at_stop': is_at_stop,
                 'last_order': bus_obj.last_stop_order,
@@ -336,12 +286,12 @@ class LocationUpdateView(View):
             async_to_sync(channel_layer.group_send)(
                 "tracking_group",
                 {"type": "send_update", "message": processed_data}
-            ) # Send to WebSocket Group
+            )
 
-# --------------- this is the extra add for smart save to database ----------
-            should_save_to_db = True
-            
-            # Check last saved location
+            # ==========================================
+            # 💾 8. SMART HISTORY SAVE
+            # ==========================================
+            should_save_history = True
             last_location = BusLocation.objects.filter(bus=bus_obj).order_by('-timestamp').first()
             
             if last_location:
@@ -349,32 +299,23 @@ class LocationUpdateView(View):
                     last_location.latitude, last_location.longitude,
                     lat, lng
                 )
-                # If moved less than 10 meters, skip DB save
-                if distance_moved < 10:  
-                    should_save_to_db = False
-            if should_save_to_db:
+                if distance_moved < 15:  
+                    should_save_history = False
+            
+            if should_save_history:
                 BusLocation.objects.create(
-                    bus=bus_obj, 
-                    latitude=lat, 
-                    longitude=lng, 
-                    speed=speed, 
-                    direction=final_direction
+                    bus=bus_obj, latitude=lat, longitude=lng, 
+                    speed=speed, direction=bus_obj.last_direction
                 )
-#-----------------------  SMART SAVE TO DATABASE------------------------
-            # BusLocation.objects.create(
-            #     bus=bus_obj, 
-            #     latitude=lat, 
-                # longitude=lng,   >>>>>>>>>>>>>>>>>>>>>>>>> this is workable old code
-            #     speed=speed, 
-            #     direction=final_direction
-            # )
             
             return JsonResponse({'status': 'success'}, status=200)
 
         except json.JSONDecodeError:
+            logger.error("Invalid JSON format received")
             return JsonResponse({'status': 'error', 'message': 'Invalid JSON format'}, status=400)
         except Exception as e:
-            print(f"Server Error: {e}")
+            # ✅ Critical Error Logging with Traceback
+            logger.exception(f"🔥 Server Error in POST: {e}")
             return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 
@@ -382,69 +323,67 @@ class LocationUpdateView(View):
 # GET STOPS API
 # ==========================================
 def get_stops(request):
-    stops = BusStop.objects.select_related('route').all().order_by('route', 'order')
-    data = []
-    for stop in stops:
-        data.append({
-            "name": stop.name,
-            "lat": stop.latitude,
-            "lng": stop.longitude,
-            "order": stop.order,
-            "route": stop.route.name
-        })
-    return JsonResponse({'stops': data}, safe=False)
+    try:
+        stops = BusStop.objects.select_related('route').all().order_by('route', 'order')
+        data = []
+        for stop in stops:
+            data.append({
+                "name": stop.name,
+                "lat": stop.latitude,
+                "lng": stop.longitude,
+                "order": stop.order,
+                "route": stop.route.name
+            })
+        return JsonResponse({'stops': data}, safe=False)
+    except Exception as e:
+        logger.error(f"Error fetching stops: {e}")
+        return JsonResponse({'error': 'Failed to fetch stops'}, status=500)
 
 
-
-# ----------------------------------- Bus Schedule views Below-------------------  
+# ==========================================
+# BUS SCHEDULE VIEWS
+# ==========================================
 class BusScheduleViewSet(viewsets.ModelViewSet):
-    
     queryset = BusSchedule.objects.filter(is_active=True).order_by('departure_time')
     serializer_class = BusScheduleSerializer
     filter_backends = [DjangoFilterBackend]
-    # এই ফিল্ডগুলো দিয়ে ফিল্টার করা যাবে
     filterset_fields = ['day_type', 'direction', 'trip_name']
 
-# ----------------------------next bus schedule for every 30 min ----------------- 
+
 class NextBusScheduleView(APIView):
     def get(self, request):
-        # ১. বাংলাদেশ টাইম অনুযায়ী বর্তমান সময়
-        now = timezone.localtime(timezone.now())
-        current_time = now.time()
-        
-        # ২. বার নির্ধারণ
-        weekday = now.weekday()
-        if weekday == 4: day_type = 'FRI'
-        elif weekday == 5: day_type = 'SAT'
-        else: day_type = 'SUN_THU'
+        try:
+            now = timezone.localtime(timezone.now())
+            current_time = now.time()
+            weekday = now.weekday()
+            if weekday == 4: day_type = 'FRI'
+            elif weekday == 5: day_type = 'SAT'
+            else: day_type = 'SUN_THU'
 
-        # ৩. পরবর্তী ঠিক একটি সময় (Time Slot) খুঁজে বের করা
-        # যেমন: এখন ২:৩৪, ডেটাবেসে পরবর্তী সময় হয়তো ৩:০০
-        next_slot = BusSchedule.objects.filter(
-            day_type=day_type,
-            departure_time__gte=current_time, # বর্তমান সময়ের পরের সময়
-            is_active=True
-        ).order_by('departure_time').first() # সবার আগেরটা নিলাম
-
-        upcoming_buses = []
-        next_time_str = ""
-
-        if next_slot:
-            # ৪. সেই নির্দিষ্ট সময়ের (Target Time) সব বাস খুঁজে বের করা
-            # যেমন: ৩:০০ টার সব বাস (এখানে ১টা বা ১০টা বাস থাকতে পারে)
-            target_time = next_slot.departure_time
-            
-            upcoming_buses = BusSchedule.objects.filter(
+            next_slot = BusSchedule.objects.filter(
                 day_type=day_type,
-                departure_time=target_time, # Exact Match with Target Time
+                departure_time__gte=current_time,
                 is_active=True
-            )
-            next_time_str = target_time.strftime("%I:%M %p")
+            ).order_by('departure_time').first()
 
-        serializer = BusScheduleSerializer(upcoming_buses, many=True)
+            upcoming_buses = []
+            next_time_str = ""
 
-        return Response({
-            "status": "success",
-            "next_slot": next_time_str, # যেমন: "03:00 PM"
-            "buses": serializer.data    # শুধু ৩:০০ টার বাসের লিস্ট
-        })
+            if next_slot:
+                target_time = next_slot.departure_time
+                upcoming_buses = BusSchedule.objects.filter(
+                    day_type=day_type,
+                    departure_time=target_time,
+                    is_active=True
+                )
+                next_time_str = target_time.strftime("%I:%M %p")
+
+            serializer = BusScheduleSerializer(upcoming_buses, many=True)
+            return Response({
+                "status": "success",
+                "next_slot": next_time_str,
+                "buses": serializer.data
+            })
+        except Exception as e:
+            logger.error(f"Error fetching schedule: {e}")
+            return Response({"status": "error", "message": str(e)}, status=500)

@@ -186,3 +186,65 @@ CELERY_BEAT_SCHEDULE = {
         # 'schedule': 30.0, 
     },
 }
+
+import os
+
+# ==========================================
+# LOGGING CONFIGURATION
+# ==========================================
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        # 1. Console Handler (টার্মিনালে দেখাবে)
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+        # 2. File Handler (ফাইলে সেভ করবে)
+        'file': {
+            'encoding': 'utf-8',
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'debug.log',  # প্রজেক্ট ফোল্ডারে ফাইল তৈরি হবে
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        # Django এর ডিফল্ট লগ
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        # ✅ আপনার অ্যাপ: core (যেখানে ট্র্যাকিং লজিক আছে)
+        'core': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        # ✅ আপনার অ্যাপ: accounts
+        'accounts': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        # ✅ আপনার অ্যাপ: lost_and_found
+        'lost_and_found': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
+}
