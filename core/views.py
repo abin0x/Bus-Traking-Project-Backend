@@ -154,6 +154,7 @@ class LocationUpdateView(View):
             incoming_bus_id = data.get('bus_id')
             raw_gps = data.get('gps_raw', '')
             device_direction = data.get('direction', 'STOPPED')
+            incoming_speed = data.get('speed', 0.0)
 
             # ২. বাস খুঁজে বের করা
             try:
@@ -164,11 +165,16 @@ class LocationUpdateView(View):
             # জিপিএস পার্সিং
             parsed_data = parse_sim7600_gps(raw_gps)
             if not parsed_data:
-                return JsonResponse({'status': 'skipped', 'message': 'Waiting for GPS fix'}, status=200)
+                return JsonResponse({'status': 'skipped', 'message': 'Waiting for GPS fix or Invalid Format'}, status=200)
 
             lat = parsed_data['latitude']
             lng = parsed_data['longitude']
-            speed = parsed_data['speed']
+            # [FIXED LOGIC] স্পিড সেট করা
+            # যদি JSON এ স্পিড থাকে তবে সেটি নিন, নাহলে পার্স করা ডেটা (আগের ভার্সনের জন্য)
+            try:
+                speed = float(incoming_speed)
+            except:
+                speed = parsed_data['speed']
 
             # ==========================================
             # 🔘 1. MANUAL PRIORITY CHECK (DRIVER BUTTON)
