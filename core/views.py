@@ -23,17 +23,20 @@ from .serializers import BusScheduleSerializer
 logger = logging.getLogger(__name__)
 
 # ==========================================
-# HELPER: GET TRIP INFO
+# HELPER: GET TRIP INFO (Optimized)
 # ==========================================
 def get_trip_info(bus_obj, direction_status):
     origin = "Unknown"
     destination = "Unknown"
 
     if bus_obj.route:
-        stops = bus_obj.route.stops.all().order_by('order')
-        if stops.exists():
-            first_stop_name = stops.first().name
-            last_stop_name = stops.last().name
+        # 🚀 OPTIMIZATION: stops.all() এখন DB হিট করবে না (prefetch এর কারণে)
+        # আমরা list() কনভার্ট করছি যাতে মেমোরি থেকে ডাটা আসে
+        stops = list(bus_obj.route.stops.all())
+        
+        if stops:
+            first_stop_name = stops[0].name
+            last_stop_name = stops[-1].name
 
             if direction_status == "UNI_TO_CITY":
                 origin = first_stop_name
@@ -42,6 +45,7 @@ def get_trip_info(bus_obj, direction_status):
                 origin = last_stop_name
                 destination = first_stop_name
             else:
+                # Default Logic based on last direction
                 if bus_obj.last_direction == "CITY_TO_UNI":
                     origin = last_stop_name
                     destination = first_stop_name
@@ -56,12 +60,17 @@ def get_trip_info(bus_obj, direction_status):
 class LocationUpdateView(View):
     """
     API Endpoint for Bus Tracking System.
+    Highly Optimized for Production.
     """
 
     def get(self, request):
         """ [FRONTEND API] """
         try:
-            active_buses = Bus.objects.filter(is_active=True).select_related('route')
+            # 🚀 OPTIMIZATION: prefetch_related যোগ করা হয়েছে (N+1 Problem Fix)
+            active_buses = Bus.objects.filter(is_active=True)\
+                .select_related('route')\
+                .prefetch_related('route__stops') 
+            
             bus_list = []
             now = timezone.now()
 
@@ -80,6 +89,7 @@ class LocationUpdateView(View):
                 if cached_data:
                     should_include = True
                     last_update_ts = cached_data.get('last_seen', now.timestamp())
+                # Live Field Check
                 elif bus.last_contact and bus.last_contact >= time_threshold:
                     if bus.current_latitude and bus.current_longitude:
                         should_include = True
@@ -128,28 +138,25 @@ class LocationUpdateView(View):
         try:
             body_unicode = request.body.decode('utf-8')
             if not body_unicode:
-                logger.warning("Empty Body received in POST")
                 return JsonResponse({'status': 'error', 'message': 'Empty Body'}, status=400)
             
             data = json.loads(body_unicode)
 
-            # 1. Extract Data
             incoming_bus_id = data.get('bus_id')
             raw_gps = data.get('gps_raw', '')
             device_direction = data.get('direction', 'STOPPED')
             incoming_speed = data.get('speed', 0.0)
 
-            # 2. Find Bus
             try:
-                bus_obj = Bus.objects.select_related('route').get(device_id=incoming_bus_id)
+                # 🚀 OPTIMIZATION: stops গুলোও prefetch করে নিচ্ছি লজিকের জন্য
+                bus_obj = Bus.objects.select_related('route')\
+                    .prefetch_related('route__stops')\
+                    .get(device_id=incoming_bus_id)
             except Bus.DoesNotExist:
-                logger.error(f"Device not registered: {incoming_bus_id}")
                 return JsonResponse({'status': 'error', 'message': 'Device not registered'}, status=404)
 
-            # 3. GPS Parsing
             parsed_data = parse_sim7600_gps(raw_gps)
             if not parsed_data:
-                logger.warning(f"Invalid GPS data from {bus_obj.name}: {raw_gps}")
                 return JsonResponse({'status': 'skipped', 'message': 'Waiting for GPS fix'}, status=200)
 
             lat = parsed_data['latitude']
@@ -164,9 +171,10 @@ class LocationUpdateView(View):
             # ==========================================
             manual_change_detected = False
             
-            # Driver Button Logic
+            # Fields that might change during logic
+            update_fields_list = ['current_latitude', 'current_longitude', 'current_speed', 'last_contact']
+            
             if device_direction != 'STOPPED' and device_direction != bus_obj.last_direction:
-                # ✅ Logged
                 logger.info(f"🔘 BUTTON PRESSED: {bus_obj.name} changed {bus_obj.last_direction} -> {device_direction}")
                 
                 bus_obj.last_direction = device_direction
@@ -176,14 +184,19 @@ class LocationUpdateView(View):
                     bus_obj.last_stop_order = 999 
                 
                 bus_obj.trip_status = 'READY'
-                manual_change_detected = True 
+                manual_change_detected = True
+                
+                # লজিক চেঞ্জ হলে এগুলোও আপডেট করতে হবে
+                update_fields_list.extend(['last_direction', 'last_stop_order', 'trip_status'])
 
             # Auto Logic
             if bus_obj.route:
-                stops = bus_obj.route.stops.all().order_by('order')
-                if stops.exists():
-                    first_stop = stops.first()
-                    last_stop = stops.last()
+                # prefetch করায় এখানে আর DB হিট হবে না
+                stops = list(bus_obj.route.stops.all()) 
+                
+                if stops:
+                    first_stop = stops[0]
+                    last_stop = stops[-1]
                     dist_to_start = calculate_distance(lat, lng, first_stop.latitude, first_stop.longitude)
                     dist_to_end = calculate_distance(lat, lng, last_stop.latitude, last_stop.longitude)
                     at_terminal = (dist_to_start <= 100) or (dist_to_end <= 100)
@@ -191,32 +204,38 @@ class LocationUpdateView(View):
                     # Moving
                     if speed > 5:
                         if bus_obj.trip_status == 'READY':
-                            logger.info(f"🚀 {bus_obj.name} started moving. Status: ON_TRIP")
+                             logger.info(f"🚀 {bus_obj.name} started moving. Status: ON_TRIP")
                         
-                        bus_obj.trip_status = 'ON_TRIP'
+                        if bus_obj.trip_status != 'ON_TRIP':
+                             bus_obj.trip_status = 'ON_TRIP'
+                             if 'trip_status' not in update_fields_list: update_fields_list.append('trip_status')
+
                         if not manual_change_detected:
                             if (100 < dist_to_start < 1000) and bus_obj.last_direction != "UNI_TO_CITY":
-                                 logger.info(f"🔄 Auto-Switch: {bus_obj.name} -> UNI_TO_CITY")
                                  bus_obj.last_direction = "UNI_TO_CITY"
                                  bus_obj.last_stop_order = 0
+                                 update_fields_list.extend(['last_direction', 'last_stop_order'])
                             elif (100 < dist_to_end < 1000) and bus_obj.last_direction != "CITY_TO_UNI":
-                                 logger.info(f"🔄 Auto-Switch: {bus_obj.name} -> CITY_TO_UNI")
                                  bus_obj.last_direction = "CITY_TO_UNI"
                                  bus_obj.last_stop_order = 999
+                                 update_fields_list.extend(['last_direction', 'last_stop_order'])
                     
                     # Stopped
                     elif speed < 3 and at_terminal:
                          if bus_obj.trip_status != 'IDLE':
-                            bus_obj.trip_status = 'READY'
+                            if bus_obj.trip_status != 'READY':
+                                bus_obj.trip_status = 'READY'
+                                if 'trip_status' not in update_fields_list: update_fields_list.append('trip_status')
+
                             if not manual_change_detected:
                                 if (dist_to_start <= 100) and bus_obj.last_direction != "UNI_TO_CITY":
-                                    logger.info(f"🤖 Auto-Set: {bus_obj.name} Ready at Start Terminal")
                                     bus_obj.last_direction = "UNI_TO_CITY"
                                     bus_obj.last_stop_order = 0
+                                    update_fields_list.extend(['last_direction', 'last_stop_order'])
                                 elif (dist_to_end <= 100) and bus_obj.last_direction != "CITY_TO_UNI":
-                                    logger.info(f"🤖 Auto-Set: {bus_obj.name} Ready at End Terminal")
                                     bus_obj.last_direction = "CITY_TO_UNI"
                                     bus_obj.last_stop_order = 999
+                                    update_fields_list.extend(['last_direction', 'last_stop_order'])
 
             # ==========================================
             # 📍 5. STOP LOGIC & TRAFFIC
@@ -229,8 +248,9 @@ class LocationUpdateView(View):
             is_at_stop = False
             
             if bus_obj.route and bus_obj.last_direction != "STOPPED":
-                route_stops = BusStop.objects.filter(route=bus_obj.route)
-                for stop in route_stops:
+                # এখানেও prefetch করা list ব্যবহার করব
+                stops = list(bus_obj.route.stops.all())
+                for stop in stops:
                     if calculate_distance(lat, lng, stop.latitude, stop.longitude) <= 50:
                         current_stop_name = stop.name
                         is_at_stop = True
@@ -243,17 +263,20 @@ class LocationUpdateView(View):
                         
                         if should_update:
                             bus_obj.last_stop_order = stop.order
-                            # ✅ Logged
-                            logger.info(f"📍 Progress ({bus_obj.last_direction}): {bus_obj.name} Reached {stop.name}")
+                            if 'last_stop_order' not in update_fields_list: update_fields_list.append('last_stop_order')
+                            logger.info(f"📍 Progress: {bus_obj.name} Reached {stop.name}")
                         break 
 
             # ==========================================
-            # 🚀 6. LIVE UPDATE
+            # 🚀 6. LIVE UPDATE (Optimized Save)
             # ==========================================
             bus_obj.current_latitude = lat
             bus_obj.current_longitude = lng
             bus_obj.current_speed = speed
-            bus_obj.save() 
+            
+            # 🚀 OPTIMIZATION: শুধু প্রয়োজনীয় ফিল্ড আপডেট করা
+            # list(set(...)) ডুপ্লিকেট ফিল্ড রিমুভ করার জন্য
+            bus_obj.save(update_fields=list(set(update_fields_list)))
 
             # ==========================================
             # 📡 7. BROADCAST (REDIS)
@@ -311,44 +334,27 @@ class LocationUpdateView(View):
             return JsonResponse({'status': 'success'}, status=200)
 
         except json.JSONDecodeError:
-            logger.error("Invalid JSON format received")
+            logger.error("Invalid JSON format")
             return JsonResponse({'status': 'error', 'message': 'Invalid JSON format'}, status=400)
         except Exception as e:
-            # ✅ Critical Error Logging with Traceback
             logger.exception(f"🔥 Server Error in POST: {e}")
             return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
-
-# ==========================================
-# GET STOPS API
-# ==========================================
+# Stops API and Schedule Views remain same...
 def get_stops(request):
     try:
         stops = BusStop.objects.select_related('route').all().order_by('route', 'order')
-        data = []
-        for stop in stops:
-            data.append({
-                "name": stop.name,
-                "lat": stop.latitude,
-                "lng": stop.longitude,
-                "order": stop.order,
-                "route": stop.route.name
-            })
+        data = [{"name": s.name, "lat": s.latitude, "lng": s.longitude, "order": s.order, "route": s.route.name} for s in stops]
         return JsonResponse({'stops': data}, safe=False)
     except Exception as e:
         logger.error(f"Error fetching stops: {e}")
-        return JsonResponse({'error': 'Failed to fetch stops'}, status=500)
+        return JsonResponse({'error': 'Failed'}, status=500)
 
-
-# ==========================================
-# BUS SCHEDULE VIEWS
-# ==========================================
 class BusScheduleViewSet(viewsets.ModelViewSet):
     queryset = BusSchedule.objects.filter(is_active=True).order_by('departure_time')
     serializer_class = BusScheduleSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['day_type', 'direction', 'trip_name']
-
 
 class NextBusScheduleView(APIView):
     def get(self, request):
@@ -356,34 +362,23 @@ class NextBusScheduleView(APIView):
             now = timezone.localtime(timezone.now())
             current_time = now.time()
             weekday = now.weekday()
-            if weekday == 4: day_type = 'FRI'
-            elif weekday == 5: day_type = 'SAT'
-            else: day_type = 'SUN_THU'
+            day_type = 'FRI' if weekday == 4 else 'SAT' if weekday == 5 else 'SUN_THU'
 
             next_slot = BusSchedule.objects.filter(
-                day_type=day_type,
-                departure_time__gte=current_time,
-                is_active=True
+                day_type=day_type, departure_time__gte=current_time, is_active=True
             ).order_by('departure_time').first()
 
             upcoming_buses = []
             next_time_str = ""
-
             if next_slot:
                 target_time = next_slot.departure_time
                 upcoming_buses = BusSchedule.objects.filter(
-                    day_type=day_type,
-                    departure_time=target_time,
-                    is_active=True
+                    day_type=day_type, departure_time=target_time, is_active=True
                 )
                 next_time_str = target_time.strftime("%I:%M %p")
 
             serializer = BusScheduleSerializer(upcoming_buses, many=True)
-            return Response({
-                "status": "success",
-                "next_slot": next_time_str,
-                "buses": serializer.data
-            })
+            return Response({"status": "success", "next_slot": next_time_str, "buses": serializer.data})
         except Exception as e:
             logger.error(f"Error fetching schedule: {e}")
             return Response({"status": "error", "message": str(e)}, status=500)
