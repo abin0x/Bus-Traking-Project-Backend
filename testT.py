@@ -64,3 +64,4 @@ for i in range(len(stops)-1, -1, -1):
     send(stops[i]['lat'], stops[i]['lng'], "CITY_TO_UNI", f"Return Stop {len(stops)-i}: {stops[i]['name']}", rand_speed)
 
 print("\n✅ Done!")# Stops with coordinates
+# gfgfd
