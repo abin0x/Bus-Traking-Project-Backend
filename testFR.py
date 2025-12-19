@@ -64,4 +64,5 @@ for i in range(len(stops)-1, -1, -1):
     current_speed = random.randint(10, 40)
     send(stops[i]['lat'], stops[i]['lng'], "CITY_TO_UNI", f"Return Stop {len(stops)-i}: {stops[i]['name']}", current_speed)
 
+dfdfjdls
 print("\n✅ Done!")
