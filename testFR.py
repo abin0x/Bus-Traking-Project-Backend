@@ -63,6 +63,6 @@ print("\n⬅️  CITY_TO_UNI")
 for i in range(len(stops)-1, -1, -1):
     current_speed = random.randint(10, 40)
     send(stops[i]['lat'], stops[i]['lng'], "CITY_TO_UNI", f"Return Stop {len(stops)-i}: {stops[i]['name']}", current_speed)
-
+dsbdsdmbfmdn
 #mcdsmds
 print("\n✅ Done!")
