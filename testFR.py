@@ -5,63 +5,64 @@ import random
 URL = "http://127.0.0.1:8000/api/update-location/"
 BUS_ID = "BUS-01"
 
-# Stops with coordinates
+# Updated stops for HSTU route (City → Uni direction)
+# Starting from city side (HSTU Bus Terminal) to university side (Boromath)
 stops = [
-    {"name": "Uni Gate", "lat": 23.8103, "lng": 90.4125},
-    {"name": "Science", "lat": 23.8150, "lng": 90.4150},
-    {"name": "Library", "lat": 23.8200, "lng": 90.4200},
-    {"name": "Market", "lat": 23.8250, "lng": 90.4250},
-    {"name": "City Center", "lat": 23.8300, "lng": 90.4300},
-    {"name": "Uni Gate", "lat": 23.8350, "lng": 90.4350},
-    {"name": "Uni Gate", "lat": 23.8400, "lng": 90.4400},
+    {"name": "HSTU Bus Terminal", "lat": 25.697721, "lng": 88.65489},
+    {"name": "Gopalganj", "lat": 25.674047, "lng": 88.652051},
+    {"name": "College Mor", "lat": 25.651059, "lng": 88.646528},
+    {"name": "Terminal", "lat": 25.643882, "lng": 88.647428},
+    {"name": "Moharajar Mor", "lat": 25.62624, "lng": 88.63711},
+    {"name": "Hospital Mor", "lat": 25.622493, "lng": 88.635196},
+    {"name": "Boromath", "lat": 25.622493, "lng": 88.635196},  # Assuming this is the university endpoint
 ]
 
-# এখানে speed প্যারামিটার যোগ করা হয়েছে
 def send(lat, lng, direction, msg, speed):
     try:
-        # Convert to NMEA
-        d = int(lat)
-        m = (lat - d) * 60
-        lat_n = f"{d*100+m:.4f}"
+        # Convert decimal degrees to NMEA format (DDMM.mmmm)
+        d = int(abs(lat))
+        m = (abs(lat) - d) * 60
+        lat_n = f"{d:02d}{m:07.4f}"  # Improved formatting for proper NMEA
+        lat_dir = "N" if lat >= 0 else "S"
         
-        d = int(lng)
-        m = (lng - d) * 60
-        lng_n = f"{d*100+m:.4f}"
+        d = int(abs(lng))
+        m = (abs(lng) - d) * 60
+        lng_n = f"{d:03d}{m:07.4f}"
+        lng_dir = "E" if lng >= 0 else "W"
         
-        # আগে এখানে 10.0 ফিক্সড ছিল, এখন {speed} ডাইনামিক করা হয়েছে
-        gps = f"{lat_n},N,{lng_n},E,123456,123456.0,{speed},8.0,0.0"
+        # gps_raw format: lat,NS,lon,EW,... (using placeholders for others)
+        gps = f"{lat_n},{lat_dir},{lng_n},{lng_dir},123456,123456.0,{speed},8.0,0.0"
         
         requests.post(URL, json={
             "bus_id": BUS_ID,
             "gps_raw": gps,
             "direction": direction,
-            "speed": speed  # ব্যাকএন্ডে আলাদাভাবে স্পিড পাঠানো হচ্ছে
+            "speed": speed
         }, timeout=1)
         
-        icon = "🟢" if direction == "UNI_TO_CITY" else "🔵"
-        print(f"{icon} {msg} | Speed: {speed} km/h")
-    except:
-        print("❌ Error")
+        icon = "🟢" if direction == "CITY_TO_UNI" else "🔵"
+        print(f"{icon} {msg} | Speed: {speed} km/h | Lat: {lat}, Lng: {lng}")
+    except Exception as e:
+        print(f"❌ Error: {e}")
     
     time.sleep(2)
 
-print("🚌 Quick Simulation - 5 Stops with Speed")
+print("🚌 HSTU Bus Route Simulation with Real Stops")
 
-# Forward trip (UNI → CITY)
-print("\n➡️  UNI_TO_CITY")
+# Forward trip: City → University
+print("\n➡️  CITY_TO_UNI")
 for i, stop in enumerate(stops):
-    # রেন্ডম স্পিড জেনারেট করা হচ্ছে (১০ থেকে ৪০ এর মধ্যে)
     current_speed = random.randint(10, 40)
-    send(stop['lat'], stop['lng'], "UNI_TO_CITY", f"Stop {i+1}: {stop['name']}", current_speed)
+    send(stop['lat'], stop['lng'], "CITY_TO_UNI", f"Stop {i+1}: {stop['name']}", current_speed)
 
-# Change direction
-print("\n🔄 DIRECTION CHANGE")
-send(stops[-1]['lat'], stops[-1]['lng'], "CITY_TO_UNI", "Switch to CITY_TO_UNI", 0)
+# Direction change at university end
+print("\n🔄 DIRECTION CHANGE AT UNIVERSITY")
+send(stops[-1]['lat'], stops[-1]['lng'], "UNI_TO_CITY", "Switching to UNI_TO_CITY", 0)
 
-# Return trip (CITY → UNI)
-print("\n⬅️  CITY_TO_UNI")
+# Return trip: University → City (reverse order)
+print("\n⬅️  UNI_TO_CITY")
 for i in range(len(stops)-1, -1, -1):
     current_speed = random.randint(10, 40)
-    send(stops[i]['lat'], stops[i]['lng'], "CITY_TO_UNI", f"Return Stop {len(stops)-i}: {stops[i]['name']}", current_speed)
+    send(stops[i]['lat'], stops[i]['lng'], "UNI_TO_CITY", f"Return Stop {len(stops)-i}: {stops[i]['name']}", current_speed)
 
-print("\n✅ Done!")
+print("\n✅ Simulation Complete!")
