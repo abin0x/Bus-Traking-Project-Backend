@@ -12,91 +12,44 @@
     <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
-        /* --- VARIABLES --- */
         :root { --primary: #0f172a; --accent: #3b82f6; --surface: #ffffff; --border: #e2e8f0; --text-main: #1e293b; --text-sub: #64748b; }
         body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; overflow: hidden; }
         #map-container { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 0; }
-
-        /* --- NAVBAR --- */
-        .navbar {
-            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px);
-            padding: 10px 20px; border-radius: 50px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            z-index: 2000; display: flex; gap: 15px; border: 1px solid rgba(255,255,255,0.5);
-        }
-        .nav-btn {
-            background: transparent; border: none; font-size: 0.9rem; font-weight: 600;
-            color: var(--text-main); cursor: pointer; padding: 8px 16px; border-radius: 20px;
-            transition: all 0.2s; display: flex; align-items: center; gap: 8px;
-        }
+        .navbar { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); padding: 10px 20px; border-radius: 50px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); z-index: 2000; display: flex; gap: 15px; border: 1px solid rgba(255,255,255,0.5); }
+        .nav-btn { background: transparent; border: none; font-size: 0.9rem; font-weight: 600; color: var(--text-main); cursor: pointer; padding: 8px 16px; border-radius: 20px; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
         .nav-btn:hover { background: #f1f5f9; color: var(--accent); }
         .nav-btn.active { background: var(--accent); color: white; box-shadow: 0 2px 10px rgba(59, 130, 246, 0.3); }
-
-        /* --- SIDEBAR --- */
         .sidebar { position: absolute; top: 80px; bottom: 20px; left: 20px; width: 360px; background: var(--surface); border-radius: 16px; box-shadow: 0 10px 30px -10px rgba(0,0,0,0.1); display: flex; flex-direction: column; z-index: 1000; border: 1px solid var(--border); transition: transform 0.3s ease; }
         .sidebar-header { padding: 20px; border-bottom: 1px solid var(--border); background: #f8fafc; border-radius: 16px 16px 0 0; }
         .brand { font-size: 1.1rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 10px; }
-        
         .bus-list { flex: 1; overflow-y: auto; padding: 16px; }
         .bus-card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
         .bus-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 15px -3px rgba(0,0,0,0.05); }
         .bus-card.active { border-color: var(--accent); background: #f0f9ff; border-left: 4px solid var(--accent); }
-        
-        /* Ghost Mode */
         .bus-card.offline { opacity: 0.6; background: #f8fafc; border-left: 4px solid #94a3b8; filter: grayscale(100%); }
-        .bus-card.offline .badge { background: #e2e8f0 !important; color: #64748b !important; }
-        
-        .badge { font-size: 0.65rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px; }
-        .badge-trip { background: #dcfce7; color: #166534; }
-        .badge-ready { background: #fef9c3; color: #854d0e; }
-        .badge-stop { background: #f3e8ff; color: #6b21a8; }
-
-        /* --- RIGHT DETAILS PANEL --- */
         .details-panel { position: absolute; top: 20px; right: 20px; bottom: 20px; width: 380px; background: var(--surface); border-radius: 16px; box-shadow: -5px 0 30px rgba(0,0,0,0.1); z-index: 1001; transform: translateX(120%); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); display: flex; flex-direction: column; border: 1px solid var(--border); overflow: hidden; }
         .details-panel.open { transform: translateX(0); }
-        
         .details-header { background: var(--primary); color: white; padding: 24px; position: relative; }
         .close-btn { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.1); border: none; color: white; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
         .close-btn:hover { background: rgba(255,255,255,0.2); }
-
         .timeline-container { padding: 20px; overflow-y: auto; flex: 1; background: #fdfdfd; }
         .timeline-step { position: relative; padding-left: 30px; margin-bottom: 20px; }
         .timeline-line { position: absolute; left: 9px; top: 5px; bottom: -25px; width: 2px; background: #e2e8f0; }
         .timeline-step:last-child .timeline-line { display: none; }
-        
         .step-dot { position: absolute; left: 0; top: 0; width: 20px; height: 20px; border-radius: 50%; background: white; border: 3px solid #cbd5e1; z-index: 2; transition: all 0.3s; }
         .timeline-step.completed .step-dot { background: var(--text-sub); border-color: var(--text-sub); }
         .timeline-step.current .step-dot { background: var(--accent); border-color: white; box-shadow: 0 0 0 3px var(--accent); }
-        
         .step-content h4 { font-size: 0.9rem; font-weight: 600; color: var(--text-main); margin: 0; }
         .step-content p { font-size: 0.75rem; color: var(--text-sub); margin: 2px 0 0 0; }
-        .timeline-step.completed h4 { text-decoration: line-through; color: #94a3b8; }
-
-        /* --- MODAL STYLES --- */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); z-index: 3000; display: none; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s; }
         .modal-overlay.active { display: flex; opacity: 1; }
         .schedule-box { background: white; width: 90%; max-width: 800px; max-height: 85vh; border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.2); display: flex; flex-direction: column; overflow: hidden; transform: translateY(20px); transition: transform 0.3s; }
-        .modal-overlay.active .schedule-box { transform: translateY(0); }
-        .schedule-header { padding: 20px 30px; background: #f8fafc; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-        .schedule-body { padding: 30px; overflow-y: auto; }
-        
-        /* Table Styles */
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; padding: 12px; font-size: 0.8rem; text-transform: uppercase; color: var(--text-sub); border-bottom: 2px solid var(--border); }
         td { padding: 16px 12px; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; color: var(--text-main); }
-        tr:last-child td { border-bottom: none; }
-        tr:hover td { background: #f8fafc; }
-
-        /* Custom Leaflet Control for Layers */
-        .leaflet-control-layers { border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important; border: none !important; font-family: 'Inter', sans-serif; }
-
-        @media (max-width: 768px) {
-            .navbar { width: 90%; justify-content: center; top: 15px; }
-            .sidebar { top: auto; bottom: 0; left: 0; right: 0; width: 100%; height: 40vh; border-radius: 20px 20px 0 0; }
-            .details-panel { width: 100%; height: 80vh; bottom: 0; top: auto; right: 0; left: 0; transform: translateY(110%); border-radius: 20px 20px 0 0; }
-            .details-panel.open { transform: translateY(0); }
-        }
+        .pro-marker { display: flex; align-items: center; justify-content: center; color: white; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); border: 2px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.2); }
+        .pro-marker i { transform: rotate(45deg); }
+        .offline-marker { filter: grayscale(1) opacity(0.7); }
     </style>
 </head>
 <body>
@@ -111,34 +64,28 @@
         <button class="nav-btn" onclick="openProfile()"><i class="fas fa-user-circle"></i> Profile</button>
     </div>
 
-    <!-- LEFT SIDEBAR -->
+    <!-- SIDEBAR -->
     <div class="sidebar">
         <div class="sidebar-header">
             <div class="brand">
                 <i class="fas fa-bus-alt text-blue-600 mr-2"></i> FLEET<span style="font-weight:400;">TRACK</span>
             </div>
-            <div class="flex gap-4 mt-3 text-[10px] uppercase font-bold text-gray-400">
-                <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-green-500"></div> Active</span>
-                <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-amber-400"></div> Ready</span>
-                <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-gray-400"></div> Lost</span>
-            </div>
+            <div id="logged-user-id" class="text-[10px] text-gray-500 font-bold mt-1">ID: ---</div>
         </div>
         <div class="bus-list" id="bus-list-content">
             <div class="flex flex-col items-center justify-center h-full text-gray-400">
                 <i class="fas fa-circle-notch fa-spin mb-2"></i>
-                <span class="text-xs">Connecting...</span>
+                <span class="text-xs">Authenticating...</span>
             </div>
         </div>
     </div>
 
-    <!-- RIGHT DETAILS PANEL -->
+    <!-- DETAILS PANEL -->
     <div class="details-panel" id="details-panel">
         <div class="details-header">
             <button class="close-btn" onclick="closeDetails()"><i class="fas fa-times"></i></button>
             <h2 class="text-2xl font-bold mb-1" id="d-name">Bus Name</h2>
-            <div class="flex items-center gap-2 text-sm opacity-90" id="d-route-info">
-                <span>Start</span> <i class="fas fa-arrow-right text-xs"></i> <span>End</span>
-            </div>
+            <div class="flex items-center gap-2 text-sm opacity-90" id="d-route-info">---</div>
             <div class="grid grid-cols-2 gap-4 mt-6">
                 <div class="bg-white/10 rounded-lg p-3 backdrop-blur-sm">
                     <div class="text-[10px] uppercase opacity-70 mb-1">Speed</div>
@@ -148,7 +95,6 @@
                     <div class="text-[10px] uppercase opacity-70 mb-1">Status</div>
                     <div class="text-sm font-bold uppercase tracking-wider" id="d-status">---</div>
                 </div>
-                <!-- SCHEDULE MODAL -->
             </div>
         </div>
         <div class="timeline-container">
@@ -157,264 +103,166 @@
         </div>
     </div>
 
-    <!-- SCHEDULE MODAL -->
+    <!-- MODALS -->
     <div class="modal-overlay" id="schedule-modal">
         <div class="schedule-box">
-            <div class="schedule-header">
-                <h2 class="text-xl font-bold text-gray-800"><i class="far fa-clock text-blue-600 mr-2"></i> Bus Schedule</h2>
-                <button onclick="closeSchedule()" class="text-gray-400 hover:text-red-500 text-xl"><i class="fas fa-times"></i></button>
+            <div class="schedule-header px-6 py-4 flex justify-between items-center border-b">
+                <h2 class="text-xl font-bold text-gray-800">Bus Schedule</h2>
+                <button onclick="closeSchedule()" class="text-gray-400 hover:text-red-500"><i class="fas fa-times"></i></button>
             </div>
-            
-            <div class="px-8 py-4 bg-gray-50 border-b border-gray-100 flex gap-4">
-                <select id="day-filter" class="px-3 py-2 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="fetchSchedule()">
+            <div class="px-8 py-4 bg-gray-50 flex gap-4">
+                <select id="day-filter" class="px-3 py-2 border rounded-lg text-sm bg-white" onchange="fetchSchedule()">
                     <option value="">All Days</option>
                     <option value="SUN_THU">Sun - Thu</option>
                     <option value="FRI">Friday</option>
                     <option value="SAT">Saturday</option>
                 </select>
-                <select id="dir-filter" class="px-3 py-2 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="fetchSchedule()">
-                    <option value="">All Routes</option>
-                    <option value="CAMPUS_TO_CITY">Campus → City</option>
-                    <option value="CITY_TO_CAMPUS">City → Campus</option>
-                </select>
             </div>
-
-            <div class="schedule-body">
+            <div class="schedule-body p-6 overflow-y-auto">
                 <table>
-                    <thead>
-                        <tr>
-                            <th>Time</th><th>Route</th><th>Trip Name</th><th>Bus No</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th>Time</th><th>Route</th><th>Trip</th><th>Bus</th></tr></thead>
                     <tbody id="schedule-table-body"></tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <!-- PROFILE MODAL -->
     <div class="modal-overlay" id="profile-modal">
-        <div class="schedule-box" style="max-width: 500px;">
-            <div class="schedule-header">
-                <h2 class="text-xl font-bold text-gray-800"><i class="fas fa-user-edit text-blue-600 mr-2"></i> Update Profile</h2>
-                <button onclick="closeProfile()" class="text-gray-400 hover:text-red-500 text-xl"><i class="fas fa-times"></i></button>
+        <div class="schedule-box max-w-lg">
+            <div class="schedule-header p-4 border-b flex justify-between">
+                <h2 class="text-xl font-bold">Profile Settings</h2>
+                <button onclick="closeProfile()"><i class="fas fa-times"></i></button>
             </div>
-            
-            <div class="p-6 bg-white overflow-y-auto" style="max-height: 80vh;">
+            <div class="p-6 overflow-y-auto max-h-[70vh]">
                 <form onsubmit="handleProfileUpdate(event)" class="space-y-4">
-                    
-                    <div class="flex flex-col items-center gap-4 mb-6">
-                        <img id="p_preview" src="https://via.placeholder.com/150" 
-                             class="w-24 h-24 rounded-full object-cover border-4 border-gray-100 shadow-md"
-                             alt="Profile Picture Preview">
-                        
-                        <div class="w-full">
-                            <label class="text-xs font-bold text-gray-500 uppercase">Profile Picture URL</label>
-                            <input type="url" id="p_image_url" placeholder="Paste image link" oninput="previewImageFromUrl()"
-                                   class="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 outline-none text-sm text-gray-600">
-                        </div>
+                    <div class="flex flex-col items-center mb-4">
+                        <img id="p_preview" class="w-20 h-20 rounded-full border mb-2 object-cover">
+                        <input type="url" id="p_image_url" placeholder="Image URL" class="text-xs w-full p-2 border rounded" oninput="previewImageFromUrl()">
                     </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="text-xs font-bold text-gray-500 uppercase">Student ID</label>
-                            <input type="text" id="p_student_id" readonly class="w-full p-2 border rounded bg-gray-100 text-gray-500 cursor-not-allowed">
-                        </div>
-                        <div>
-                            <label class="text-xs font-bold text-gray-500 uppercase">Batch</label>
-                            <input type="text" id="p_batch" readonly class="w-full p-2 border rounded bg-gray-100 text-gray-500 cursor-not-allowed">
-                        </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <input type="text" id="p_student_id" readonly class="bg-gray-100 p-2 border rounded text-sm">
+                        <input type="text" id="p_batch" readonly class="bg-gray-100 p-2 border rounded text-sm">
                     </div>
-
-                    <div>
-                        <label class="text-xs font-bold text-gray-500 uppercase">Full Name</label>
-                        <input type="text" id="p_name" class="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 outline-none">
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="text-xs font-bold text-gray-500 uppercase">Phone</label>
-                            <input type="text" id="p_phone" class="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 outline-none">
-                        </div>
-                        <div>
-                            <label class="text-xs font-bold text-gray-500 uppercase">Email</label>
-                            <input type="email" id="p_email" class="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 outline-none">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="text-xs font-bold text-gray-500 uppercase">Faculty</label>
-                        <select id="p_faculty" onchange="loadProfileDepartments()" class="w-full p-2 border rounded bg-white focus:ring-1 focus:ring-blue-500 outline-none text-sm"></select>
-                    </div>
-                    <div>
-                        <label class="text-xs font-bold text-gray-500 uppercase">Department</label>
-                        <select id="p_dept" class="w-full p-2 border rounded bg-white focus:ring-1 focus:ring-blue-500 outline-none text-sm"></select>
-                    </div>
-
-                    <button type="submit" id="p_save_btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded transition shadow-lg mt-4">
-                        Save Changes
-                    </button>
-
-                    <div class="border-t border-gray-100 mt-6 pt-4">
-                        <button type="button" onclick="handleLogout()" class="w-full bg-red-50 text-red-600 hover:bg-red-100 font-bold py-2 rounded transition flex items-center justify-center gap-2">
-                            <i class="fas fa-sign-out-alt"></i> Sign Out
-                        </button>
-                    </div>
-
+                    <input type="text" id="p_name" placeholder="Full Name" class="w-full p-2 border rounded text-sm">
+                    <input type="text" id="p_phone" placeholder="Phone" class="w-full p-2 border rounded text-sm">
+                    <input type="email" id="p_email" placeholder="Email" class="w-full p-2 border rounded text-sm">
+                    <select id="p_faculty" onchange="loadProfileDepartments()" class="w-full p-2 border rounded text-sm"></select>
+                    <select id="p_dept" class="w-full p-2 border rounded text-sm"></select>
+                    <button type="submit" id="p_save_btn" class="w-full bg-blue-600 text-white font-bold py-2 rounded">Save Changes</button>
+                    <button type="button" onclick="handleLogout()" class="w-full bg-red-50 text-red-600 py-2 rounded font-bold mt-4">Sign Out</button>
                 </form>
             </div>
         </div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
     <script>
-        // --- 1. EXTEND LEAFLET MARKER FOR SMOOTH ANIMATION ---
+        // --- JWT & AUTH HELPERS ---
+        const getAccessToken = () => localStorage.getItem('access_token');
+        const checkAuth = () => {
+            if (!getAccessToken()) { window.location.href = '/auth/'; return false; }
+            return true;
+        };
+
+        const secureFetch = async (url, options = {}) => {
+            const token = getAccessToken();
+            const headers = { ...options.headers, 'Authorization': `Bearer ${token}` };
+            const response = await fetch(url, { ...options, headers });
+            if (response.status === 401) { handleLogout(); } // Token expired
+            return response;
+        };
+
+        // --- MAP SETUP ---
+        const streetLayer = L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3'] });
+        const satelliteLayer = L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', { maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3'] });
+        const map = L.map('map-container', { zoomControl: false, layers: [streetLayer] }).setView([23.8103, 90.4125], 13);
+        L.control.layers({ "Street": streetLayer, "Satellite": satelliteLayer }, null, { position: 'bottomright' }).addTo(map);
+
         L.Marker.prototype.slideTo = function (latlng, options) {
             if (!this._map) return;
-
             this._slideToDuration = options.duration || 1000;
             this._slideToStart = Date.now();
             this._slideToStartLatLng = this.getLatLng();
             this._slideToTargetLatLng = L.latLng(latlng);
-
-            if (this._slideFrameId) {
-                L.Util.cancelAnimFrame(this._slideFrameId);
-            }
-
+            if (this._slideFrameId) L.Util.cancelAnimFrame(this._slideFrameId);
             this._slideFrameId = L.Util.requestAnimFrame(this._slideTo, this);
         };
-
         L.Marker.prototype._slideTo = function () {
-            var now = Date.now();
-            var elapsed = now - this._slideToStart;
-            var progress = Math.min(elapsed / this._slideToDuration, 1);
-
+            var progress = Math.min((Date.now() - this._slideToStart) / this._slideToDuration, 1);
             var lat = this._slideToStartLatLng.lat + (this._slideToTargetLatLng.lat - this._slideToStartLatLng.lat) * progress;
             var lng = this._slideToStartLatLng.lng + (this._slideToTargetLatLng.lng - this._slideToStartLatLng.lng) * progress;
-
             this.setLatLng([lat, lng]);
-
-            if (progress < 1) {
-                this._slideFrameId = L.Util.requestAnimFrame(this._slideTo, this);
-            } else {
-                this._slideFrameId = null;
-            }
+            if (progress < 1) this._slideFrameId = L.Util.requestAnimFrame(this._slideTo, this);
         };
 
-        // --- 2. MAP SETUP WITH LAYERS (Street & Satellite) ---
-        
-        // Define Layers
-        const streetLayer = L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-            maxZoom: 20,
-            subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-            attribution: 'Google Streets'
-        });
+        // --- GLOBAL STATE ---
+        const markers = {}, busesData = {}, globalStops = [];
+        let selectedBusId = null, facultyData = {};
 
-        const satelliteLayer = L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
-            maxZoom: 20,
-            subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-            attribution: 'Google Satellite'
-        });
+        // --- INITIAL DATA LOAD ---
+        async function init() {
+            if (!checkAuth()) return;
+            
+            const user = JSON.parse(localStorage.getItem('user'));
+            document.getElementById('logged-user-id').innerText = `ID: ${user?.student_id || '---'}`;
 
-        // Init Map
-        const map = L.map('map-container', { 
-            zoomControl: false,
-            layers: [streetLayer] // Default layer
-        }).setView([23.8103, 90.4125], 13);
-
-        // Add Layer Control
-        const baseMaps = {
-            "Street View": streetLayer,
-            "Satellite View": satelliteLayer
-        };
-        L.control.layers(baseMaps, null, { position: 'bottomright' }).addTo(map);
-        L.control.zoom({ position: 'topright' }).addTo(map);
-
-        // --- GLOBAL VARIABLES ---
-        const markers = {};
-        const busesData = {};
-        let globalStops = [];
-        let selectedBusId = null;
-        let facultyData = {}; 
-
-        // --- FETCH STOPS ---
-        fetch('/api/stops/')
-            .then(res => res.json())
-            .then(data => {
+            // Load Stops
+            try {
+                const res = await secureFetch('/api/stops/');
+                const data = await res.json();
                 if(data.stops) {
-                    globalStops = data.stops;
                     data.stops.forEach(stop => {
-                        L.circleMarker([stop.lat, stop.lng], {
-                            radius: 4, color: 'transparent', fillColor: '#cbd5e1', fillOpacity: 0.8
-                        }).addTo(map);
+                        globalStops.push(stop);
+                        L.circleMarker([stop.lat, stop.lng], { radius: 3, color: '#cbd5e1', fillOpacity: 0.5 }).addTo(map);
                     });
                 }
-            });
+            } catch(e) {}
 
-        // --- WEBSOCKET ---
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const socket = new WebSocket(protocol + '//' + window.location.host + '/ws/tracking/');
+            // Load Initial Buses
+            try {
+                const res = await secureFetch('/api/update-location/');
+                const data = await res.json();
+                if(data.buses) data.buses.forEach(b => updateBusState(b));
+            } catch(e) {}
 
-        socket.onmessage = (e) => {
-            const data = JSON.parse(e.data);
-            const container = document.getElementById('bus-list-content');
-            if(container.querySelector('.fa-spin')) container.innerHTML = '';
+            initWebSocket();
+        }
 
-            if (data.buses) {
-                data.buses.forEach(b => { b.is_live = true; updateBusState(b); });
-            } else {
-                data.is_live = true;
+        function initWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const token = getAccessToken();
+            // Pass token in Query String for Channels TokenAuthMiddleware
+            const socket = new WebSocket(`${protocol}//${window.location.host}/ws/tracking/?token=${token}`);
+
+            socket.onmessage = (e) => {
+                const data = JSON.parse(e.data);
+                const container = document.getElementById('bus-list-content');
+                if(container.querySelector('.fa-spin')) container.innerHTML = '';
+
+                if (data.status === 'connected') return;
                 updateBusState(data);
-            }
-        };
+            };
+
+            socket.onclose = () => { console.log("Socket Closed. Retrying in 5s..."); setTimeout(initWebSocket, 5000); };
+        }
 
         function updateBusState(bus) {
-            bus.client_time = bus.is_live ? (Date.now()/1000) : (bus.last_seen || Date.now()/1000);
-
-            if (bus.trip_status === 'IDLE') {
-                removeBus(bus.id); return;
-            }
-
+            if (bus.trip_status === 'IDLE') { removeBus(bus.id); return; }
+            bus.client_time = Date.now() / 1000;
             busesData[bus.id] = bus;
             updateMarker(bus);
             updateListCard(bus);
-            checkGhostMode(bus);
-
-            if (selectedBusId === bus.id) {
-                updateRightPanel(bus);
-            }
-        }
-
-        function removeBus(id) {
-            if (markers[id]) { map.removeLayer(markers[id]); delete markers[id]; }
-            const card = document.getElementById(`card-${id}`);
-            if (card) card.remove();
-            if (selectedBusId === id) closeDetails();
-            delete busesData[id];
+            if (selectedBusId === bus.id) updateRightPanel(bus);
         }
 
         function updateMarker(bus) {
-            let color = '#3b82f6';
-            if (bus.at_stop) color = '#7c3aed';
-            if (bus.trip_status === 'READY') color = '#eab308';
-
-            const iconHtml = `<div class="pro-marker" style="width:36px; height:36px; background:${color}; position:relative;">
-                <div class="marker-arrow" style="border-bottom-color:${color};"></div>
-                <i class="fas fa-bus text-sm"></i>
-            </div>`;
-            const icon = L.divIcon({ html: iconHtml, className: 'bg-transparent', iconSize: [36, 36], iconAnchor: [18, 36] });
+            let color = bus.trip_status === 'READY' ? '#eab308' : (bus.at_stop ? '#7c3aed' : '#3b82f6');
+            const iconHtml = `<div class="pro-marker" style="width:34px; height:34px; background:${color};"><i class="fas fa-bus"></i></div>`;
+            const icon = L.divIcon({ html: iconHtml, className: 'bg-transparent', iconSize: [34, 34], iconAnchor: [17, 34] });
 
             if (markers[bus.id]) {
-                // UPDATE: Use slideTo instead of setLatLng for smooth animation
-                markers[bus.id].setIcon(icon); // Update icon color if status changed
-                markers[bus.id].slideTo([bus.lat, bus.lng], { duration: 2000 }); // 2 seconds smooth duration
-                
-                const el = markers[bus.id].getElement();
-                if(el) {
-                    const inner = el.querySelector('.pro-marker');
-                    if(inner) inner.classList.remove('offline-marker');
-                }
+                markers[bus.id].setIcon(icon);
+                markers[bus.id].slideTo([bus.lat, bus.lng], { duration: 2000 });
             } else {
                 const marker = L.marker([bus.lat, bus.lng], { icon: icon }).addTo(map);
                 marker.on('click', () => selectBus(bus.id));
@@ -425,234 +273,92 @@
         function updateListCard(bus) {
             const container = document.getElementById('bus-list-content');
             let card = document.getElementById(`card-${bus.id}`);
-
-            let badgeClass = 'bg-green-100 text-green-700';
-            let badgeText = 'ON TRIP';
-            if (bus.trip_status === 'READY') { badgeClass = 'bg-amber-100 text-amber-700'; badgeText = 'READY'; }
-            else if (bus.at_stop) { badgeClass = 'bg-purple-100 text-purple-700'; badgeText = 'AT STOP'; }
-
-            let depText = '';
-            if (bus.trip_status === 'READY' && bus.next_departure) {
-                depText = `<div class="mt-2 text-xs font-bold text-amber-600 flex items-center gap-1"><i class="far fa-clock"></i> ${bus.next_departure}</div>`;
-            }
+            const badgeClass = bus.trip_status === 'READY' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700';
 
             const html = `
-                <div class="flex justify-between items-start mb-2">
-                    <h3 class="font-bold text-gray-800">${bus.name}</h3>
-                    <span class="text-[10px] font-bold px-2 py-1 rounded-full ${badgeClass}">${badgeText}</span>
+                <div class="flex justify-between items-start mb-1">
+                    <h3 class="font-bold text-sm text-gray-800">${bus.name}</h3>
+                    <span class="text-[9px] font-bold px-2 py-0.5 rounded-full ${badgeClass}">${bus.trip_status}</span>
                 </div>
-                <div class="flex items-center gap-4 text-xs text-gray-500">
-                    <span class="flex items-center gap-1"><i class="fas fa-route"></i> ${bus.route}</span>
-                    <span class="flex items-center gap-1"><i class="fas fa-tachometer-alt"></i> ${Math.round(bus.speed)} km/h</span>
-                </div>
-                ${depText}
+                <div class="text-[11px] text-gray-500"><i class="fas fa-route mr-1"></i> ${bus.route}</div>
             `;
-
-            if (card) {
-                card.innerHTML = html;
-            } else {
+            if (card) { card.innerHTML = html; } 
+            else {
                 card = document.createElement('div');
-                card.id = `card-${bus.id}`;
-                card.className = 'bus-card';
-                card.innerHTML = html;
-                card.onclick = () => selectBus(bus.id);
-                container.appendChild(card);
+                card.id = `card-${bus.id}`; card.className = 'bus-card'; card.innerHTML = html;
+                card.onclick = () => selectBus(bus.id); container.appendChild(card);
             }
         }
 
-        // --- GHOST MODE ---
-        setInterval(() => {
-            const now = Date.now() / 1000;
-            Object.keys(busesData).forEach(id => {
-                const bus = busesData[id];
-                const diff = now - bus.client_time;
-                const isStand = (bus.trip_status === 'READY' || bus.speed < 1);
-                const limit = isStand ? 120 : 1200;
-
-                if (diff > limit) removeBus(id);
-                else if (diff > 60) markOffline(id);
-                else markOnline(id);
-            });
-        }, 2000);
-
-        function checkGhostMode(bus) {
-            const diff = (Date.now()/1000) - bus.client_time;
-            if (diff > 60) markOffline(bus.id);
-            else markOnline(bus.id);
-        }
-
-        function markOffline(id) {
-            const card = document.getElementById(`card-${id}`);
-            if (card) card.classList.add('offline');
-            if (markers[id] && markers[id].getElement()) {
-                const inner = markers[id].getElement().querySelector('.pro-marker');
-                if(inner) inner.classList.add('offline-marker');
-            }
-        }
-
-        function markOnline(id) {
-            const card = document.getElementById(`card-${id}`);
-            if (card) card.classList.remove('offline');
-            if (markers[id] && markers[id].getElement()) {
-                const inner = markers[id].getElement().querySelector('.pro-marker');
-                if(inner) inner.classList.remove('offline-marker');
-            }
-        }
-
-        // --- DETAILS PANEL ---
         function selectBus(id) {
             selectedBusId = id;
             document.querySelectorAll('.bus-card').forEach(c => c.classList.remove('active'));
-            const card = document.getElementById(`card-${id}`);
-            if(card) card.classList.add('active');
-            
+            document.getElementById(`card-${id}`)?.classList.add('active');
             document.getElementById('details-panel').classList.add('open');
-            map.flyTo([busesData[id].lat, busesData[id].lng], 15, {duration: 1.5});
+            map.flyTo([busesData[id].lat, busesData[id].lng], 15);
             updateRightPanel(busesData[id]);
         }
 
-        function closeDetails() {
-            document.getElementById('details-panel').classList.remove('open');
-            selectedBusId = null;
-            document.querySelectorAll('.bus-card').forEach(c => c.classList.remove('active'));
-            map.flyTo([23.8103, 90.4125], 13);
-        }
+        function closeDetails() { document.getElementById('details-panel').classList.remove('open'); selectedBusId = null; }
 
         function updateRightPanel(bus) {
             document.getElementById('d-name').innerText = bus.name;
-            document.getElementById('d-route-info').innerHTML = `<span>${bus.origin}</span> <i class="fas fa-arrow-right text-xs text-gray-400"></i> <span>${bus.destination}</span>`;
+            document.getElementById('d-route-info').innerText = `${bus.origin} → ${bus.destination}`;
             document.getElementById('d-speed').innerText = bus.speed.toFixed(1);
+            document.getElementById('d-status').innerText = bus.at_stop ? "AT STATION" : bus.trip_status;
+
+            const root = document.getElementById('timeline-root');
+            const stops = globalStops.filter(s => s.route === bus.route).sort((a,b) => bus.direction_status === "CITY_TO_UNI" ? b.order - a.order : a.order - b.order);
             
-            let st = bus.trip_status === 'READY' ? 'READY TO DEPART' : 'ON TRIP';
-            if (bus.at_stop) st = 'AT STATION';
-            document.getElementById('d-status').innerText = st;
+            root.innerHTML = stops.map(stop => {
+                let status = (bus.direction_status === "CITY_TO_UNI" ? stop.order > bus.last_order : stop.order < bus.last_order) ? 'completed' : (stop.order === bus.last_order ? 'current' : 'pending');
+                return `<div class="timeline-step ${status}"><div class="timeline-line"></div><div class="step-dot"></div><div class="step-content"><h4>${stop.name}</h4><p>${status}</p></div></div>`;
+            }).join('');
+        }
 
-            const container = document.getElementById('timeline-root');
-            const stops = globalStops.filter(s => s.route === bus.route);
-            const dir = bus.direction_status;
-            
-            if(dir === "CITY_TO_UNI") stops.sort((a,b) => b.order - a.order);
-            else stops.sort((a,b) => a.order - b.order);
-
-            let html = '';
-            stops.forEach(stop => {
-                let status = 'pending';
-                const order = stop.order;
-                const last = bus.last_order;
-
-                if ((dir === "CITY_TO_UNI" && order > last) || (dir !== "CITY_TO_UNI" && order < last)) status = 'completed';
-                else if (order === last) status = 'current';
-
-                html += `
-                    <div class="timeline-step ${status}">
-                        <div class="timeline-line"></div>
-                        <div class="step-dot"></div>
-                        <div class="step-content">
-                            <h4 class="${status === 'current' ? 'text-blue-600' : ''}">${stop.name} ${status === 'current' ? '<span class="text-[10px] bg-blue-600 text-white px-1 rounded ml-1">LIVE</span>' : ''}</h4>
-                            <p>${status === 'completed' ? 'Passed' : (status === 'current' ? 'Current Location' : 'Upcoming')}</p>
-                        </div>
-                    </div>
-                `;
+        // --- AUTH & PROFILE ---
+        function handleLogout() {
+            const refresh = localStorage.getItem('refresh_token');
+            secureFetch('/api/auth/logout/', { 
+                method: 'POST', 
+                body: JSON.stringify({ refresh }) 
+            }).finally(() => {
+                localStorage.clear();
+                window.location.href = '/auth/';
             });
-            container.innerHTML = html || '<div class="text-center text-gray-400 py-4">No route info</div>';
-        }
-
-        // --- SCHEDULE & PROFILE FUNCTIONS (Kept same as before) ---
-        function openSchedule() { document.getElementById('schedule-modal').classList.add('active'); fetchSchedule(); }
-        function closeSchedule() { document.getElementById('schedule-modal').classList.remove('active'); }
-
-        function fetchSchedule() {
-            const day = document.getElementById('day-filter').value;
-            const dir = document.getElementById('dir-filter').value;
-            let url = '/api/schedule/?';
-            if(day) url += `day_type=${day}&`;
-            if(dir) url += `direction=${dir}`;
-
-            fetch(url)
-                .then(res => res.json())
-                .then(data => {
-                    const tbody = document.getElementById('schedule-table-body');
-                    tbody.innerHTML = '';
-                    data.forEach(item => {
-                        tbody.innerHTML += `<tr><td class="font-bold text-blue-600">${item.formatted_time}</td><td>${item.direction_label}</td><td>${item.trip_name}</td><td>${item.bus_number}</td></tr>`;
-                    });
-                });
-        }
-
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-
-        function previewImageFromUrl() {
-            const url = document.getElementById('p_image_url').value;
-            document.getElementById('p_preview').src = url || "https://via.placeholder.com/150?text=No+Link";
         }
 
         async function openProfile() {
             document.getElementById('profile-modal').classList.add('active');
-            if (Object.keys(facultyData).length === 0) await loadFacultyData(); 
+            if (!Object.keys(facultyData).length) {
+                const res = await secureFetch('/api/auth/faculty-data/');
+                facultyData = await res.json();
+            }
             const facSelect = document.getElementById('p_faculty');
-            facSelect.innerHTML = '<option value="">Select Faculty</option>';
-            Object.keys(facultyData).forEach(fac => { facSelect.innerHTML += `<option value="${fac}">${fac}</option>`; });
-            fetchProfileData();
-        }
-
-        function closeProfile() { document.getElementById('profile-modal').classList.remove('active'); }
-
-        async function loadFacultyData() {
-            try { const res = await fetch('/api/auth/faculty-data/'); facultyData = await res.json(); } catch (err) {}
-        }
-
-        function fetchProfileData() {
-            fetch('/api/auth/profile/')
-                .then(res => { if (res.status === 403) { window.location.href = '/auth/'; return null; } return res.json(); })
-                .then(data => {
-                    if (data) {
-                        document.getElementById('p_student_id').value = data.student_id;
-                        document.getElementById('p_name').value = data.full_name;
-                        document.getElementById('p_phone').value = data.phone_number;
-                        document.getElementById('p_email').value = data.email;
-                        document.getElementById('p_batch').value = data.batch;
-                        document.getElementById('p_image_url').value = data.profile_image || "";
-                        document.getElementById('p_preview').src = data.profile_image || "https://via.placeholder.com/150?text=No+Img";
-                        document.getElementById('p_faculty').value = data.faculty;
-                        if (data.faculty && facultyData[data.faculty]) {
-                            const deptSelect = document.getElementById('p_dept');
-                            deptSelect.innerHTML = '';
-                            facultyData[data.faculty].forEach(dept => { deptSelect.innerHTML += `<option value="${dept}">${dept}</option>`; });
-                            deptSelect.value = data.department;
-                        }
-                    }
-                });
+            facSelect.innerHTML = Object.keys(facultyData).map(f => `<option value="${f}">${f}</option>`).join('');
+            
+            const res = await secureFetch('/api/auth/profile/');
+            const data = await res.json();
+            document.getElementById('p_student_id').value = data.student_id;
+            document.getElementById('p_name').value = data.full_name;
+            document.getElementById('p_phone').value = data.phone_number;
+            document.getElementById('p_email').value = data.email;
+            document.getElementById('p_batch').value = data.batch;
+            document.getElementById('p_image_url').value = data.profile_image || "";
+            document.getElementById('p_preview').src = data.profile_image || "";
+            document.getElementById('p_faculty').value = data.faculty;
+            loadProfileDepartments();
+            document.getElementById('p_dept').value = data.department;
         }
 
         function loadProfileDepartments() {
             const faculty = document.getElementById('p_faculty').value;
-            const deptSelect = document.getElementById('p_dept');
-            deptSelect.innerHTML = '<option value="">Select Department</option>';
-            if (faculty && facultyData[faculty]) {
-                facultyData[faculty].forEach(dept => {
-                    const option = document.createElement('option'); option.value = dept; option.innerText = dept; deptSelect.appendChild(option);
-                });
-            }
+            const depts = facultyData[faculty] || [];
+            document.getElementById('p_dept').innerHTML = depts.map(d => `<option value="${d}">${d}</option>`).join('');
         }
 
         function handleProfileUpdate(e) {
             e.preventDefault();
-            const btn = document.getElementById('p_save_btn');
-            btn.innerText = "Saving...";
-            
             const payload = {
                 full_name: document.getElementById('p_name').value,
                 phone_number: document.getElementById('p_phone').value,
@@ -661,25 +367,31 @@
                 department: document.getElementById('p_dept').value,
                 profile_image: document.getElementById('p_image_url').value
             };
-
-            fetch('/api/auth/profile/', {
-                method: 'PATCH', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') }, body: JSON.stringify(payload)
-            }).then(async res => {
-                if (res.ok) { alert("Profile Updated Successfully!"); closeProfile(); } else { alert("Error: Check inputs"); }
-            }).finally(() => btn.innerText = "Save Changes");
+            secureFetch('/api/auth/profile/', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).then(res => { if(res.ok) { alert("Updated!"); closeProfile(); }});
         }
 
-        function handleLogout() {
-            if (!confirm("Are you sure you want to logout?")) return;
-            fetch('/api/auth/logout/', { method: 'POST', headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' } })
-            .then(res => { if (res.ok) window.location.href = '/auth/'; });
+        // --- SCHEDULE ---
+        async function openSchedule() {
+            document.getElementById('schedule-modal').classList.add('active');
+            fetchSchedule();
         }
+        async function fetchSchedule() {
+            const day = document.getElementById('day-filter').value;
+            const res = await secureFetch(`/api/schedule/${day ? '?day_type=' + day : ''}`);
+            const data = await res.json();
+            document.getElementById('schedule-table-body').innerHTML = data.map(item => `
+                <tr><td class="font-bold text-blue-600">${item.formatted_time}</td><td>${item.direction_label}</td><td>${item.trip_name}</td><td>${item.bus_number}</td></tr>
+            `).join('');
+        }
+        function closeSchedule() { document.getElementById('schedule-modal').classList.remove('active'); }
+        function closeProfile() { document.getElementById('profile-modal').classList.remove('active'); }
+        function previewImageFromUrl() { document.getElementById('p_preview').src = document.getElementById('p_image_url').value; }
 
-        // Initial Load
-        fetch('/api/update-location/').then(res => res.json()).then(data => {
-            if(data.status === 'success') data.buses.forEach(b => { b.is_live = false; updateBusState(b); });
-        });
-
+        init();
     </script>
 </body>
 </html>
