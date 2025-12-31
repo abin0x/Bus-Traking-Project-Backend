@@ -268,3 +268,24 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',), # মোবাইল অ্যাপ হেডারে পাঠাবে: Bearer <token>
 }
+
+#Sentry Configuration
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
+from sentry_sdk.integrations.celery import CeleryIntegration
+sentry_sdk.init(
+    dsn="https://9e7644a1d7811f1b0a3b0608e9f1c5d1@o4510630781452288.ingest.de.sentry.io/4510630783025232",
+    integrations=[
+        DjangoIntegration(),
+        CeleryIntegration(), # Celery ব্যাকগ্রাউন্ড টাস্ক ট্র্যাক করার জন্য
+    ],
+    send_default_pii=True,
+   
+    enable_logs=True,
+  
+    traces_sample_rate=1.0,
+   
+    profile_session_sample_rate=1.0,
+    
+    profile_lifecycle="trace",
+)
