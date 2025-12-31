@@ -44,14 +44,30 @@
                                     [ Django Channels ]
                                               |
                              [ Web / Mobile Clients (JWT Auth) ]
+                            
 
+```
 
-### 🛠 Technology Stack
-Layer	Technologies
-Backend	Python, Django 5.x, Django REST Framework
-Real-time	Django Channels, WebSockets, Redis
-Tasks/Queue	Celery, Celery Beat
-Database	PostgreSQL, Redis (Caching)
-Frontend	HTML5, Tailwind CSS, Leaflet.js
-Monitoring	Sentry.io SDK
-Infrastructure	Docker-ready, Coolify, Systemd
+## 🛠 Technology Stack
+
+| Layer | Technologies |
+| :--- | :--- |
+| **Backend** | Python, Django 5.x, Django REST Framework |
+| **Real-time** | Django Channels, WebSockets, Redis |
+| **Tasks/Queue**| Celery, Celery Beat |
+| **Database** | PostgreSQL, Redis (Caching) |
+| **Frontend** | HTML5, Tailwind CSS, Leaflet.js |
+| **Monitoring** | Sentry.io SDK |
+| **Infrastructure**| Docker-ready, Coolify, Systemd |
+
+---
+
+## 📈 Device Health Monitoring
+
+The system monitors critical hardware metrics in real-time to ensure maximum uptime and data reliability:
+
+*   **GSM Signal Strength (RSSI):** Visual indicators for network reliability and connection stability.
+*   **Battery Voltage Level:** Real-time monitoring of the bus-mounted device's power status to prevent unexpected downtime.
+*   **Satellite Count:** Monitors GPS fix quality to ensure high precision in location coordinates.
+
+---
