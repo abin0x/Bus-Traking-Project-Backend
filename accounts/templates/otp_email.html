@@ -1,0 +1,34 @@
+<!-- templates/otp_email.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .container { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 500px; margin: auto; border: 1px solid #e0e0e0; border-radius: 10px; padding: 20px; }
+        .header { text-align: center; background-color: #2563eb; color: white; padding: 15px; border-radius: 10px 10px 0 0; }
+        .content { padding: 20px; color: #333; line-height: 1.6; }
+        .otp-box { background-color: #f3f4f6; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #2563eb; padding: 15px; margin: 20px 0; border-radius: 8px; border: 1px dashed #2563eb; }
+        .footer { text-align: center; font-size: 12px; color: #777; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>HSTU Bus Tracker</h2>
+        </div>
+        <div class="content">
+            <p>হ্যালো <strong>{{ full_name }}</strong>,</p>
+            <p>আপনার অ্যাকাউন্ট ভেরিফাই করার জন্য নিচে একটি ওটিপি (OTP) পাঠানো হয়েছে। এই কোডটি গোপন রাখুন।</p>
+            
+            <div class="otp-box">
+                {{ otp }}
+            </div>
+            
+            <p>কোডটি অ্যাপে প্রবেশ করিয়ে আপনার একাউন্টটি চালু করে নিন।</p>
+            <p>ধন্যবাদ,<br>এডমিন প্যানেল</p>
+        </div>
+        <div class="footer">
+            <p>&copy; 2025 HSTU Transport Management System. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

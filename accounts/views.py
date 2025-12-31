@@ -12,6 +12,8 @@ from django.contrib.auth import login , logout
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import generics
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.template.loader import render_to_string # টেমপ্লেট রেন্ডার করার জন্য
+from django.utils.html import strip_tags # HTML থেকে টেক্সট বের করার জন্য (ব্যাকআপ হিসেবে)
 
 
 User = get_user_model()
@@ -29,6 +31,8 @@ class FacultyDataView(APIView):
 # ==========================================
 # 2. REGISTRATION API (With SMTP Email)
 # ==========================================
+
+
 class StudentRegistrationView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
@@ -37,49 +41,47 @@ class StudentRegistrationView(APIView):
         serializer = RegistrationSerializer(data=request.data)
         
         if serializer.is_valid():
-            # ১. ইউজার সেভ করা
             try:
                 user = serializer.save()
             except Exception as e:
-                return Response({"error": "রেজিস্ট্রেশনে সমস্যা হয়েছে। আবার চেষ্টা করুন।"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response({"error": "রেজিস্ট্রেশনে সমস্যা হয়েছে।"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
-            # ২. OTP জেনারেট করা
             otp = user.generate_otp()
             
-            # ৩. SMTP দিয়ে ইমেইল পাঠানো
+            # --- প্রফেশনাল HTML ইমেইল লজিক ---
             subject = 'HSTU Bus Tracker - Account Verification'
-            message = f'''হ্যালো {user.full_name},
-
-আপনার বাস ট্র্যাকিং অ্যাপের ভেরিফিকেশন কোড (OTP) হলো: {otp}
-
-দয়া করে অ্যাপে এই কোডটি দিয়ে আপনার একাউন্ট চালু করুন।
-
-ধন্যবাদ,
-এডমিন প্যানেল'''
+            context = {
+                'full_name': user.full_name,
+                'otp': otp
+            }
+            # HTML ফরম্যাট তৈরি করা
+            html_message = render_to_string('otp_email.html', context)
+            # যদি কারো ইমেইল ক্লায়েন্ট HTML সাপোর্ট না করে, তবে প্লেইন টেক্সট দেখাবে
+            plain_message = strip_tags(html_message) 
             
-            # settings.py থেকে হোস্ট ইমেইল নেওয়া
             email_from = settings.EMAIL_HOST_USER 
             recipient_list = [user.email]
             
             email_sent = False
             try:
-                send_mail(subject, message, email_from, recipient_list, fail_silently=False)
+                send_mail(
+                    subject, 
+                    plain_message, 
+                    email_from, 
+                    recipient_list, 
+                    html_message=html_message, # এই প্যারামিটারটি HTML মেইল পাঠাবে
+                    fail_silently=False
+                )
                 email_sent = True
             except Exception as e:
-                # ইমেইল ফেইল হলে ইউজারকে জানানো, তবে একাউন্ট তৈরি থাকবে
                 print(f"❌ Email Error: {e}")
                 
-            response_data = {
+            return Response({
                 "status": "success",
-                "message": "রেজিস্ট্রেশন সফল!",
+                "message": "রেজিস্ট্রেশন সফল! ইমেইল চেক করুন।",
                 "student_id": user.student_id,
                 "email_sent": email_sent
-            }
-            
-            if not email_sent:
-                response_data["warning"] = "ইমেইল পাঠানো যায়নি। দয়া করে এডমিনের সাথে যোগাযোগ করুন বা পুনরায় চেষ্টা করুন।"
-
-            return Response(response_data, status=status.HTTP_201_CREATED)
+            }, status=status.HTTP_201_CREATED)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -187,7 +189,7 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
 
 class ForgotPasswordView(APIView):
     permission_classes = [AllowAny]
-    authentication_classes = [] # CSRF bypass
+    authentication_classes = [] 
 
     def post(self, request):
         serializer = ForgotPasswordRequestSerializer(data=request.data)
@@ -195,37 +197,43 @@ class ForgotPasswordView(APIView):
             student_id = serializer.validated_data['student_id']
             user = User.objects.get(student_id=student_id)
 
-            # OTP তৈরি ও সেভ করা
+            # OTP তৈরি
             otp = user.generate_otp()
 
-            # ইমেইল পাঠানো
+            # --- প্রফেশনাল HTML ইমেইল লজিক ---
             subject = 'HSTU Bus Tracker - Password Reset Request'
-            message = f'''প্রিয় {user.full_name},
-
-আপনার পাসওয়ার্ড রিসেট করার জন্য নিচের OTP কোডটি ব্যবহার করুন:
-
-OTP: {otp}
-
-আপনি যদি এই রিকোয়েস্ট না করে থাকেন, তবে এটি ইগনোর করুন।
-
-ধন্যবাদ,
-এডমিন প্যানেল'''
+            context = {
+                'full_name': user.full_name,
+                'student_id': user.student_id,
+                'otp': otp
+            }
+            
+            # HTML এবং প্লেইন টেক্সট মেসেজ জেনারেট করা
+            html_message = render_to_string('password_reset_email.html', context)
+            plain_message = strip_tags(html_message)
             
             email_from = settings.EMAIL_HOST_USER
             recipient_list = [user.email]
 
             try:
-                send_mail(subject, message, email_from, recipient_list, fail_silently=False)
+                send_mail(
+                    subject, 
+                    plain_message, 
+                    email_from, 
+                    recipient_list, 
+                    html_message=html_message, # HTML ফরম্যাট যুক্ত করা হলো
+                    fail_silently=False
+                )
                 return Response({
                     "status": "success",
-                    "message": "আপনার ইমেইলে একটি OTP পাঠানো হয়েছে।",
+                    "message": "আপনার ইমেইলে একটি সিকিউরিটি কোড (OTP) পাঠানো হয়েছে।",
                     "student_id": student_id
                 }, status=status.HTTP_200_OK)
             except Exception as e:
+                print(f"❌ Reset Email Error: {e}")
                 return Response({"error": "ইমেইল পাঠাতে সমস্যা হয়েছে। সার্ভার এরর।"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 # ==========================================
 # 6. RESET PASSWORD - VERIFY OTP & CHANGE
