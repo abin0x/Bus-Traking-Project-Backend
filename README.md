@@ -45,7 +45,8 @@
                                               |
                              [ Web / Mobile Clients (JWT Auth) ]
 
-🛠 Technology Stack
+
+### 🛠 Technology Stack
 Layer	Technologies
 Backend	Python, Django 5.x, Django REST Framework
 Real-time	Django Channels, WebSockets, Redis
