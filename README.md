@@ -70,4 +70,3 @@ The system monitors critical hardware metrics in real-time to ensure maximum upt
 *   **Battery Voltage Level:** Real-time monitoring of the bus-mounted device's power status to prevent unexpected downtime.
 *   **Satellite Count:** Monitors GPS fix quality to ensure high precision in location coordinates.
 
----
