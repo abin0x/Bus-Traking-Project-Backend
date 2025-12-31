@@ -72,12 +72,39 @@ class BusAdmin(admin.ModelAdmin):
 
 @admin.register(BusLocation)
 class BusLocationAdmin(admin.ModelAdmin):
-    list_display = ('bus', 'timestamp', 'speed', 'direction')
-    list_filter = ('bus', 'timestamp')
-    date_hierarchy = 'timestamp'
+    # ১. লিস্ট ভিউতে কী কী কলাম দেখাবে (Map link এবং Lat/Lng যোগ করা হয়েছে)
+    list_display = ('bus', 'timestamp', 'speed', 'direction', 'lat_lng', 'open_map')
     
+    # ২. পারফরম্যান্স অপ্টিমাইজেশন (N+1 কুয়েরি রোধ করতে)
+    # যেহেতু হাজার হাজার ডাটা থাকবে, তাই select_related মাস্ট।
+    list_select_related = ('bus',)
+    
+    # ৩. ফিল্টারিং (বাস অনুযায়ী এবং সময় অনুযায়ী)
+    list_filter = ('bus', 'timestamp', 'direction')
+    
+    # ৪. সার্চ (বাসের নাম বা আইডি দিয়ে সার্চ করা যাবে)
+    search_fields = ('bus__name', 'bus__device_id')
+    
+    # ৫. ডেট হায়ারার্কি (উপরে ক্যালেন্ডারের মতো ন্যাভিগেশন আসবে)
+    date_hierarchy = 'timestamp'
+
+    # কাস্টম মেথড: কোঅর্ডিনেট দেখানোর জন্য
+    def lat_lng(self, obj):
+        return f"{obj.latitude:.4f}, {obj.longitude:.4f}"
+    lat_lng.short_description = "Coordinates"
+
+    # কাস্টম মেথড: ম্যাপে ওই নির্দিষ্ট লোকেশন দেখার জন্য
+    def open_map(self, obj):
+        url = f"https://www.google.com/maps/search/?api=1&query={obj.latitude},{obj.longitude}"
+        return format_html('<a href="{}" target="_blank" style="color:blue; font-weight:bold;">📍 View</a>', url)
+    open_map.short_description = "Map"
+
+    # সিকিউরিটি: হিস্টোরি ডাটা কেউ যেন এড বা এডিট না করতে পারে (শুধুমাত্র দেখা যাবে)
     def has_add_permission(self, request): return False
     def has_change_permission(self, request, obj=None): return False
+    
+    # ডিলিট পারমিশন রাখা যেতে পারে যদি এডমিন ম্যানুয়ালি ক্লিন করতে চায়
+    def has_delete_permission(self, request, obj=None): return True
 
 
 # ----------------------------- Bus schedule Admin ----------------------------- 

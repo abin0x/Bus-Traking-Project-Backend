@@ -1,4 +1,4 @@
-
+# core/views.py
 import json
 import logging
 from django.http import JsonResponse
@@ -16,6 +16,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .models import Bus, BusStop, BusSchedule
 from .utils import parse_sim7600_gps
 from .serializers import BusScheduleSerializer
+from .tasks import process_bus_location_task # টাস্ক ইম্পোর্ট
 from .services import BusTrackingService
 
 logger = logging.getLogger(__name__)
@@ -24,7 +25,7 @@ logger = logging.getLogger(__name__)
 class LocationUpdateView(View):
     
     def get(self, request):
-        """ [FRONTEND API] """
+        """ [FRONTEND API] - ক্যাশে থেকে লাইভ ডাটা দেখাবে """
         try:
             active_buses = Bus.objects.filter(is_active=True).select_related('route').prefetch_related('route__stops')
             bus_list = []
@@ -33,64 +34,57 @@ class LocationUpdateView(View):
             for bus in active_buses:
                 cached_data = cache.get(f"bus_data_{bus.device_id}")
                 
-                # পুরনো কোডের সেই timeout লজিক (১০ মিনিট বনাম ২ মিনিট)
                 is_on_trip = bus.trip_status == 'ON_TRIP'
-                timeout_mins = 10 if is_on_trip else 2
-                time_threshold = now - timedelta(minutes=timeout_mins)
+                time_threshold = now - timedelta(minutes=(10 if is_on_trip else 2))
 
                 if cached_data:
                     bus_list.append(cached_data)
                 elif bus.last_contact and bus.last_contact >= time_threshold:
-                    # ক্যাশে না থাকলে ডাটাবেস থেকে রিয়্যালটাইম জেনারেট করা
                     origin, dest = BusTrackingService.get_trip_info(bus, bus.last_direction)
                     bus_list.append({
-                        'id': bus.device_id, 'name': bus.name, 'route': bus.route.name if bus.route else "No Route",
-                        'lat': bus.current_latitude, 'lng': bus.current_longitude, 'speed': bus.current_speed,
-                        'direction_status': bus.last_direction, 'trip_status': bus.trip_status,
-                        'origin': origin, 'destination': dest, 'last_seen': bus.last_contact.timestamp()
+                        'id': bus.device_id, 'name': bus.name, 'lat': bus.current_latitude,
+                        'lng': bus.current_longitude, 'speed': bus.current_speed,
+                        'direction_status': bus.last_direction, 'origin': origin, 'destination': dest,
+                        'last_seen': bus.last_contact.timestamp()
                     })
 
             return JsonResponse({'status': 'success', 'buses': bus_list}, status=200)
         except Exception as e:
-            logger.error(f"Error in GET: {e}")
             return JsonResponse({'status': 'error', 'message': 'Internal Server Error'}, status=500)
 
     def post(self, request):
-        """ [IOT DEVICE API] """
+        """ [IOT DEVICE API] - ডাটা পেয়ে সাথে সাথে Celery-তে পাঠাবে """
         try:
             data = json.loads(request.body.decode('utf-8'))
             bus_id = data.get('bus_id')
             api_key = data.get('api_key')
             
-            # ১. অথেন্টিকেশন
-            bus_obj = Bus.objects.select_related('route').prefetch_related('route__stops').get(device_id=bus_id)
-            if bus_obj.api_key != api_key:
-                return JsonResponse({'status': 'error', 'message': 'Invalid API Key'}, status=403)
-
-            # ২. জিপিএস ডাটা পার্সিং
+            # ১. জিপিএস পার্সিং (ভিউতে করা ভালো যাতে ইনভ্যালিড ডাটা ফিল্টার হয়)
             parsed_gps = parse_sim7600_gps(data.get('gps_raw', ''))
             if not parsed_gps:
-                return JsonResponse({'status': 'skipped', 'message': 'GPS Fix Waiting'}, status=200)
+                return JsonResponse({'status': 'skipped', 'message': 'No GPS fix'}, status=200)
 
-            # ৩. সার্ভিস লেয়ারকে সমস্ত লজিক কল করা
-            BusTrackingService.handle_location_update(
-                bus_obj=bus_obj,
+            # ২. ভারী কাজ Celery-তে হ্যান্ডওভার করা
+            # .delay() মেথড কাজটিকে ব্যাকগ্রাউন্ড কিউতে পাঠিয়ে দেয়
+            process_bus_location_task.delay(
+                bus_id=bus_id,
                 lat=parsed_gps['latitude'],
                 lng=parsed_gps['longitude'],
                 speed=float(data.get('speed', parsed_gps['speed'])),
-                device_direction=data.get('direction', 'STOPPED')
+                direction=data.get('direction', 'STOPPED'),
+                api_key=api_key
             )
 
-            return JsonResponse({'status': 'success'}, status=200)
+            # ৩. সাথে সাথে রেসপন্স দেওয়া
+            return JsonResponse({'status': 'received'}, status=200)
 
-        except Bus.DoesNotExist:
-            return JsonResponse({'status': 'error', 'message': 'Bus not registered'}, status=404)
+        except json.JSONDecodeError:
+            return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
         except Exception as e:
-            logger.exception(f"Error in POST: {e}")
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+            logger.error(f"POST View Error: {e}")
+            return JsonResponse({'status': 'error', 'message': 'Internal Error'}, status=500)
 
-# --- বাকি ভিউগুলো (Schedule/Stops) ---
-
+# --- Schedule and Stops Views (Remain same as before) ---
 def get_stops(request):
     try:
         stops = BusStop.objects.select_related('route').all().order_by('route', 'order')
@@ -112,8 +106,7 @@ class NextBusScheduleView(APIView):
             day_type = 'FRI' if now.weekday() == 4 else 'SAT' if now.weekday() == 5 else 'SUN_THU'
             next_slot = BusSchedule.objects.filter(day_type=day_type, departure_time__gte=now.time(), is_active=True).first()
             
-            buses = []
-            time_str = ""
+            buses, time_str = [], ""
             if next_slot:
                 buses = BusSchedule.objects.filter(day_type=day_type, departure_time=next_slot.departure_time, is_active=True)
                 time_str = next_slot.departure_time.strftime("%I:%M %p")
