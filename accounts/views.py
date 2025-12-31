@@ -11,6 +11,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth import login , logout
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import generics
+from rest_framework_simplejwt.tokens import RefreshToken
+
 
 User = get_user_model()
 
@@ -140,12 +142,14 @@ class LoginView(APIView):
                 if not user.is_verified:
                     return Response({"status": "error", "message": "Account not verified."}, status=status.HTTP_403_FORBIDDEN)
                 
-                # [CRITICAL CHANGE] সার্ভারে সেশন তৈরি করা
-                login(request, user)
-
+                # --- JWT টোকেন জেনারেট করা ---
+                refresh = RefreshToken.for_user(user)
+                
                 return Response({
                     "status": "success",
                     "message": "লগইন সফল হয়েছে!",
+                    "access": str(refresh.access_token), # এটি অ্যাপ প্রতিবার API কলে পাঠাবে
+                    "refresh": str(refresh), # এটি এক্সেস টোকেন এক্সপায়ার হলে নতুন টোকেন নিতে লাগবে
                     "user": {
                         "full_name": user.full_name,
                         "student_id": user.student_id
@@ -157,9 +161,20 @@ class LoginView(APIView):
     
 # ========================================== logout update api=======================
 class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def post(self, request):
-        logout(request) # সার্ভার সেশন মুছে ফেলবে
-        return Response({"message": "Logout successful"}, status=status.HTTP_200_OK)
+        try:
+            # মোবাইল অ্যাপ বা ওয়েবসাইট থেকে রিফ্রেশ টোকেনটি পাঠাতে হবে
+            refresh_token = request.data.get("refresh")
+            token = RefreshToken(refresh_token)
+            
+            # টোকেনটিকে ব্ল্যাকলিস্টে পাঠিয়ে দেওয়া (যাতে এটি আর ব্যবহার না করা যায়)
+            token.blacklist()
+            
+            return Response({"status": "success", "message": "Logout successful"}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"status": "error", "message": "Invalid token"}, status=status.HTTP_400_BAD_REQUEST)
     
 # ========================================== frofile update api=======================
 class UserProfileView(generics.RetrieveUpdateAPIView):

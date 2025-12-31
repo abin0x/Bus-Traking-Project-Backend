@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework_simplejwt.token_blacklist',
     "channels",
     'rest_framework',
     'django_filters',
@@ -247,4 +248,23 @@ LOGGING = {
             'propagate': True,
         },
     },
+}
+
+
+from datetime import timedelta
+
+# ১. REST Framework সেটিংস আপডেট করুন
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
+
+# ২. JWT সেটিংস সেটআপ করুন
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1), # টোকেন ১ দিন কাজ করবে
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=30), # ৩০ দিন পর ইউজারকে আবার লগইন করতে হবে
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'AUTH_HEADER_TYPES': ('Bearer',), # মোবাইল অ্যাপ হেডারে পাঠাবে: Bearer <token>
 }

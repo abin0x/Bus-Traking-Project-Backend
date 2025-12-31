@@ -54,10 +54,10 @@
                             class="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
                     </div>
                 </div>
-                <!-- Login Form এর ভেতরে -->
-<div class="flex justify-end mb-4">
-    <a href="#" onclick="showSection('forgot-section')" class="text-xs text-blue-600 hover:underline">Forgot Password?</a>
-</div>
+
+                <div class="flex justify-end mb-4">
+                    <a href="#" onclick="showSection('forgot-section')" class="text-xs text-blue-600 hover:underline">Forgot Password?</a>
+                </div>
 
                 <button type="submit" id="login_btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg transition duration-200">
                     Sign In
@@ -80,14 +80,11 @@
             </div>
 
             <form onsubmit="handleRegister(event)" class="space-y-3">
-                
-                <!-- Full Name -->
                 <div>
                     <label class="text-xs font-bold text-gray-500 uppercase">Full Name</label>
                     <input type="text" id="reg_name" required class="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 outline-none">
                 </div>
 
-                <!-- ID & Phone Row -->
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="text-xs font-bold text-gray-500 uppercase">Student ID (7 Digit)</label>
@@ -101,13 +98,11 @@
                     </div>
                 </div>
 
-                <!-- Email -->
                 <div>
                     <label class="text-xs font-bold text-gray-500 uppercase">Email Address</label>
                     <input type="email" id="reg_email" required class="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 outline-none">
                 </div>
 
-                <!-- Faculty Dropdown -->
                 <div>
                     <label class="text-xs font-bold text-gray-500 uppercase">Faculty</label>
                     <select id="reg_faculty" onchange="loadDepartments()" required 
@@ -116,7 +111,6 @@
                     </select>
                 </div>
 
-                <!-- Department Dropdown -->
                 <div>
                     <label class="text-xs font-bold text-gray-500 uppercase">Department</label>
                     <select id="reg_dept" required class="w-full p-2 border rounded bg-white focus:ring-1 focus:ring-blue-500 outline-none text-sm">
@@ -124,7 +118,6 @@
                     </select>
                 </div>
 
-                <!-- Batch & Password -->
                 <div class="grid grid-cols-3 gap-3">
                     <div class="col-span-1">
                         <label class="text-xs font-bold text-gray-500 uppercase">Batch</label>
@@ -162,6 +155,7 @@
             </form>
             <p class="text-xs text-gray-400 mt-4 cursor-pointer hover:text-gray-600">Resend Code</p>
         </div>
+
         <!-- =========================== -->
         <!-- 4. FORGOT PASSWORD SECTION -->
         <!-- =========================== -->
@@ -171,43 +165,39 @@
                 <button onclick="showSection('login-section')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
             </div>
 
-            <!-- STEP 1: Send OTP -->
             <div id="forgot-step-1">
                 <p class="text-sm text-gray-600 mb-4">Enter your Student ID to receive an OTP.</p>
                 <input type="text" id="forgot_id" placeholder="Student ID" class="w-full p-2 border rounded mb-4 focus:ring-1 focus:ring-blue-500">
                 <button onclick="handleForgotRequest()" id="forgot_req_btn" class="w-full bg-blue-600 text-white font-bold py-2 rounded">Send Code</button>
             </div>
 
-            <!-- STEP 2: Verify & New Password (Hidden Initially) -->
             <div id="forgot-step-2" class="hidden">
                 <p class="text-sm text-green-600 mb-4 font-bold">OTP sent to your email!</p>
-                
                 <label class="text-xs font-bold text-gray-500 uppercase">Enter OTP</label>
                 <input type="text" id="reset_otp" placeholder="123456" class="w-full p-2 border rounded mb-3">
-                
                 <label class="text-xs font-bold text-gray-500 uppercase">New Password</label>
                 <input type="password" id="reset_new_pass" placeholder="New Password" class="w-full p-2 border rounded mb-4">
-                
                 <button onclick="handleResetConfirm()" id="reset_btn" class="w-full bg-green-600 text-white font-bold py-2 rounded">Change Password</button>
             </div>
         </div>
 
     </div>
 
-    <!-- Alert Box (Toast) -->
     <div id="toast" class="fixed bottom-5 right-5 px-6 py-3 rounded-lg shadow-lg text-white text-sm transform translate-y-20 transition-transform duration-300 hidden z-50"></div>
 
     <script>
         // --- GLOBAL VARIABLES ---
         let facultyData = {};
-        let registeredStudentId = ""; // To store ID after registration for OTP
-        let resetStudentId = ""; // Store ID for step 2
+        let registeredStudentId = ""; 
+        let resetStudentId = ""; 
 
         // --- 1. UI FUNCTIONS ---
         function showSection(id) {
-            ['login-section', 'register-section', 'otp-section'].forEach(sec => {
+            // সকল সেকশন হাইড করা
+            ['login-section', 'register-section', 'otp-section', 'forgot-section'].forEach(sec => {
                 document.getElementById(sec).classList.add('hidden-section');
             });
+            // টার্গেট সেকশন শো করা
             const el = document.getElementById(id);
             el.classList.remove('hidden-section');
             el.classList.add('fade-in');
@@ -225,7 +215,6 @@
         }
 
         // --- 2. DATA LOADING (FACULTY) ---
-        // পেজ লোড হওয়ার সাথে সাথে ফ্যাকাল্টি ডেটা নিয়ে আসবে
         fetch('/api/auth/faculty-data/')
             .then(res => res.json())
             .then(data => {
@@ -255,7 +244,6 @@
             }
         }
 
-        // --- 3. AUTO FILL BATCH ---
         function autoFillBatch() {
             const id = document.getElementById('reg_id').value;
             if (id.length >= 2) {
@@ -292,10 +280,9 @@
                 const data = await res.json();
                 if (res.ok) {
                     showToast('Registration Successful! Check Email.', 'success');
-                    registeredStudentId = data.student_id; // Save ID for OTP
+                    registeredStudentId = data.student_id; 
                     showSection('otp-section');
                 } else {
-                    // Show error from serializer
                     const errorMsg = Object.values(data).flat()[0] || 'Registration Failed';
                     showToast(errorMsg, 'error');
                 }
@@ -335,7 +322,7 @@
             .finally(() => btn.innerText = "Verify & Activate");
         }
 
-        // --- 6. LOGIN HANDLER ---
+        // --- 6. JWT LOGIN HANDLER (Updated for JWT) ---
         function handleLogin(e) {
             e.preventDefault();
             const btn = document.getElementById('login_btn');
@@ -356,23 +343,24 @@
                 if (res.ok) {
                     showToast('Login Successful!', 'success');
                     
-                    // Save user info (Optional)
+                    // ==========================================
+                    // JWT টোকেনগুলো LocalStorage-এ সেভ করা
+                    // ==========================================
+                    localStorage.setItem('access_token', data.access);
+                    localStorage.setItem('refresh_token', data.refresh);
                     localStorage.setItem('user', JSON.stringify(data.user));
                     
-                    // Redirect to Map/Home
+                    // ১ সেকেন্ড পর হোম পেজে রিডাইরেক্ট
                     setTimeout(() => window.location.href = '/', 1000);
                 } else {
-                    showToast(data.message || data.error || 'Login Failed', 'error');
+                    showToast(data.message || 'Login Failed', 'error');
                 }
             })
             .catch(() => showToast('Connection Failed', 'error'))
             .finally(() => btn.innerText = "Sign In");
         }
-        // --- 7. FORGOT PASSWORD HANDLERS ---
-        
-        
 
-        // Step 1: Request OTP
+        // --- 7. FORGOT PASSWORD HANDLERS ---
         function handleForgotRequest() {
             const btn = document.getElementById('forgot_req_btn');
             const stdId = document.getElementById('forgot_id').value;
@@ -392,11 +380,10 @@
                 if (res.ok) {
                     showToast(data.message, 'success');
                     resetStudentId = stdId;
-                    // UI Switch to Step 2
                     document.getElementById('forgot-step-1').classList.add('hidden');
                     document.getElementById('forgot-step-2').classList.remove('hidden');
                 } else {
-                    showToast(data.message || Object.values(data)[0] || "Error", 'error');
+                    showToast(data.message || "Error", 'error');
                     btn.innerText = "Send Code";
                     btn.disabled = false;
                 }
@@ -408,14 +395,12 @@
             });
         }
 
-        // Step 2: Confirm Reset
         function handleResetConfirm() {
             const btn = document.getElementById('reset_btn');
             const otp = document.getElementById('reset_otp').value;
             const newPass = document.getElementById('reset_new_pass').value;
 
             if(!otp || !newPass) return showToast("Fill all fields", "error");
-
             btn.innerText = "Processing...";
             
             fetch('/api/auth/reset-password/', {
@@ -431,15 +416,8 @@
                 const data = await res.json();
                 if (res.ok) {
                     showToast("Password Changed Successfully!", 'success');
-                    // Reset UI
-                    document.getElementById('forgot-step-1').classList.remove('hidden');
-                    document.getElementById('forgot-step-2').classList.add('hidden');
-                    document.getElementById('forgot_id').value = "";
-                    document.getElementById('reset_otp').value = "";
-                    document.getElementById('reset_new_pass').value = "";
                     btn.innerText = "Change Password";
-                    
-                    showSection('login-section'); // Go to login
+                    showSection('login-section'); 
                 } else {
                     showToast(data.message || "Failed to reset", 'error');
                     btn.innerText = "Change Password";
@@ -447,7 +425,6 @@
             })
             .catch(() => showToast("Network Error", "error"));
         }
-
     </script>
 </body>
 </html>
