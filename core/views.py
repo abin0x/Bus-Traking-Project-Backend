@@ -143,18 +143,28 @@ class LocationUpdateView(View):
             data = json.loads(body_unicode)
 
             incoming_bus_id = data.get('bus_id')
+            incoming_key = data.get('api_key')
             raw_gps = data.get('gps_raw', '')
             device_direction = data.get('direction', 'STOPPED')
             incoming_speed = data.get('speed', 0.0)
+
+            if not incoming_bus_id or not incoming_key:
+                return JsonResponse({'status': 'error', 'message': 'Credentials missing'}, status=401)
 
             try:
                 # 🚀 OPTIMIZATION: stops গুলোও prefetch করে নিচ্ছি লজিকের জন্য
                 bus_obj = Bus.objects.select_related('route')\
                     .prefetch_related('route__stops')\
                     .get(device_id=incoming_bus_id)
+            # except Bus.DoesNotExist:
+            #     return JsonResponse({'status': 'error', 'message': 'Device not registered'}, status=404)
+                if bus_obj.api_key != incoming_key:
+                    logger.warning(f"Unauthorized access attempt! Bus: {incoming_bus_id}")
+                    return JsonResponse({'status': 'error', 'message': 'Invalid API Key'},  status=403)
             except Bus.DoesNotExist:
                 return JsonResponse({'status': 'error', 'message': 'Device not registered'}, status=404)
-
+            
+            
             parsed_data = parse_sim7600_gps(raw_gps)
             if not parsed_data:
                 return JsonResponse({'status': 'skipped', 'message': 'Waiting for GPS fix'}, status=200)

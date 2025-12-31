@@ -1,4 +1,8 @@
 from django.db import models
+import secrets
+
+def generate_api_key():
+    return secrets.token_urlsafe(32) 
 
 class Route(models.Model):
     name = models.CharField(max_length=100) 
@@ -12,7 +16,14 @@ class Bus(models.Model):
     device_id = models.CharField(max_length=50, unique=True)
     name = models.CharField(max_length=50) 
     route = models.ForeignKey(Route, on_delete=models.SET_NULL, null=True, blank=True)
-    api_key = models.CharField(max_length=100, default="secret_key") 
+    # api_key = models.CharField(max_length=100, default="secret_key") 
+    # সিকিউরিটি আপডেট: ডাইনামিক এপিআই কি
+    api_key = models.CharField(
+        max_length=100, 
+        default=generate_api_key, 
+        unique=True,
+        help_text="এটি হার্ডওয়্যার ডিভাইসের জন্য গোপন কি (Secret Key)"
+    ) 
     is_active = models.BooleanField(default=True)
 
     last_stop_order = models.IntegerField(default=0) 
