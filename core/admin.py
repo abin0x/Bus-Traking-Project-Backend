@@ -40,19 +40,20 @@ class BusAdmin(admin.ModelAdmin):
     list_display = ('name', 'device_id', 'route', 'is_active', 'current_status', 'last_stop_info')
     list_filter = ('route', 'is_active', 'last_direction')
     search_fields = ('name', 'device_id')
-    
-    # অ্যাডমিন থেকে যেন ভুল করে কেউ অটোমেটেড ফিল্ড এডিট না করে, তাই Readonly
-    readonly_fields = ('last_stop_order', 'last_direction')
+
+     # এপিআই কি এবং অন্যান্য অটো-ফিল্ড রিড-অনলি করা হয়েছে
+    readonly_fields = ('api_key', 'last_stop_order', 'last_direction')
 
     fieldsets = (
         ('Bus Info', {
             'fields': ('name', 'route', 'is_active')
         }),
-        ('Hardware Config', {
+        ('Hardware Security (Confidential)', {
             'fields': ('device_id', 'api_key'),
+            'description': "ডিভাইস কনফিগার করার সময় এই ID এবং Key ব্যবহার করুন।"
         }),
-        ('Live Tracking Data (Auto Updated)', {
-            'fields': ('last_direction', 'last_stop_order'),
+        ('Live Tracking Data', {
+            'fields': ('last_direction', 'last_stop_order', 'trip_status'),
         }),
     )
 
