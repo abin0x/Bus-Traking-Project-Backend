@@ -51,7 +51,7 @@ def send_update(lat, lng, direction, msg, speed):
     except Exception as e:
         print(f"❌ Connection Error: {e}")
     
-    time.sleep(2) # ২ সেকেন্ড বিরতি
+    time.sleep(5) # ৫ সেকেন্ড বিরতি
 
 # ================= সিমুলেশন শুরু =================
 
